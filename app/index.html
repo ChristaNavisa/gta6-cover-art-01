@@ -3,132 +3,105 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Neon Coast Cover Studio — GTA-style cover maker</title>
+<title>Vice Panel Studio — GTA-style cover maker</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="topbar">
   <div class="brand">
-    <span class="brand-mark">NC</span>
-    <div>
-      <h1>Neon Coast Cover Studio</h1>
-      <p>Turn any photo into GTA-style cover art — offline, no upload.</p>
-    </div>
+    <h1>VICE PANEL STUDIO</h1>
+    <p>Turn any photo into GTA-style cover art. Offline, on your machine, in three sizes.</p>
   </div>
-  <div class="top-actions">
-    <button id="undoBtn" class="btn ghost" type="button" title="Undo">↩ Undo</button>
-    <button id="redoBtn" class="btn ghost" type="button" title="Redo">↪ Redo</button>
-    <label class="size-pick">Size
-      <select id="sizeSelect">
-        <option value="1080x1080">1080 × 1080 · Square</option>
-        <option value="1080x1350">1080 × 1350 · Portrait</option>
-        <option value="1920x1080">1920 × 1080 · Wide</option>
-        <option value="1080x1920">1080 × 1920 · Story</option>
-      </select>
-    </label>
-    <button id="exportBtn" class="btn primary" type="button">⬇ Export PNG</button>
-    <button id="exportAllBtn" class="btn accent" type="button">Export all sizes</button>
+  <div class="actions">
+    <button id="undoBtn" type="button" disabled>Undo</button>
+    <button id="redoBtn" type="button" disabled>Redo</button>
+    <button id="exportAllBtn" type="button" class="primary">Export all 3 sizes</button>
+    <button id="exportBtn" type="button" class="primary">Export PNG</button>
   </div>
 </header>
 
-<main class="workspace">
-  <aside class="panel left">
-    <section>
-      <h2>1 · Photos</h2>
-      <p class="hint">Your photos never leave this machine.</p>
-      <button id="addPhotosBtn" class="btn wide" type="button">＋ Add photos…</button>
-      <input id="photoInput" type="file" accept="image/*" multiple hidden>
-      <div class="samples">
-        <button id="sampleBoulevard" class="btn small" type="button">Sample · Boulevard</button>
-        <button id="samplePier" class="btn small" type="button">Sample · Pier</button>
-      </div>
-      <div id="photoStrip" class="photo-strip" aria-label="Loaded photos"></div>
-      <button id="fillAllBtn" class="btn small wide" type="button">Fill every panel with selected photo</button>
-    </section>
-
-    <section>
-      <h2>2 · Layout</h2>
-      <div id="layoutGrid" class="choice-grid"></div>
-    </section>
-
-    <section>
-      <h2>3 · Colour grade</h2>
-      <div id="gradeGrid" class="choice-grid"></div>
-    </section>
-  </aside>
-
+<main>
   <section class="stage">
-    <div class="stage-head">
-      <span id="stageLabel">Live preview — click a panel to edit it, drag to move the photo, scroll to zoom</span>
-      <span id="panelLabel" class="panel-label">Panel 1 · Hero</span>
-    </div>
-    <div class="canvas-wrap">
-      <canvas id="preview" width="1080" height="1080"></canvas>
-    </div>
-    <div class="stage-foot">
-      <span>Tip: one photo can fill every panel — or give each panel its own.</span>
-      <span id="photoCount">0 photos loaded</span>
-    </div>
+    <canvas id="preview" width="1080" height="1080"></canvas>
+    <p class="hint">Click a panel to select it, drag it to position the photo, scroll to zoom. One photo or several — your call.</p>
+    <div id="selftest" class="selftest"></div>
   </section>
 
-  <aside class="panel right">
+  <aside class="controls">
     <section>
-      <h2>Lettering</h2>
-      <label class="field">Title
-        <input id="titleInput" type="text" value="NEON COAST" maxlength="24" spellcheck="false">
-      </label>
-      <label class="field">Subtitle (script)
-        <input id="subtitleInput" type="text" value="one last ride" maxlength="40" spellcheck="false">
-      </label>
-      <label class="field">Badge ribbon
-        <input id="badgeInput" type="text" value="LAUNCH WEEK" maxlength="20" spellcheck="false">
-      </label>
-      <label class="field">Title style
-        <select id="titleStyleSelect">
-          <option value="white">White Anton, hard shadow</option>
-          <option value="sunset">Sunset gradient fill</option>
-          <option value="neon">Neon outline glow</option>
-          <option value="halftone">Halftone title block</option>
-        </select>
-      </label>
-      <label class="field">Heat meter
-        <span class="heat-row">
-          <input id="heatRange" type="range" min="0" max="5" step="1" value="4">
-          <span id="heatStars" class="heat-stars">★★★★☆</span>
-        </span>
-      </label>
-    </section>
-
-    <section>
-      <h2>Selected panel</h2>
-      <label class="field">Photo in this panel
-        <select id="panelPhotoSelect"></select>
-      </label>
-      <label class="field">Zoom
-        <input id="zoomRange" type="range" min="50" max="300" step="1" value="100">
-      </label>
-      <div class="btn-row">
-        <button id="centerBtn" class="btn small" type="button">Centre photo</button>
-        <button id="resetPanelBtn" class="btn small" type="button">Reset panel</button>
+      <h2>1 · Layout</h2>
+      <div class="row">
+        <button type="button" data-layout="grid" class="active">Vice Grid · 5 panels</button>
+        <button type="button" data-layout="strip">Sunset Strip · 4 panels</button>
+        <button type="button" data-layout="trio">Neon Trio · 3 panels</button>
       </div>
-      <p class="hint">Drag the photo inside the panel to reposition it. Scroll over a panel to zoom.</p>
+      <p id="layoutBlurb" class="blurb"></p>
     </section>
 
     <section>
-      <h2>Finish</h2>
-      <label class="check"><input id="grainCheck" type="checkbox" checked> Film grain</label>
-      <label class="check"><input id="vignetteCheck" type="checkbox" checked> Vignette</label>
-      <label class="check"><input id="frameCheck" type="checkbox" checked> Poster frame</label>
-      <label class="check"><input id="inkCheck" type="checkbox"> Poster ink (banded panels)</label>
-      <label class="check"><input id="halftoneCheck" type="checkbox" checked> Halftone dots</label>
-      <p class="hint">Original art only — no game logos, artwork or fonts. Lettering: Anton, Pacifico &amp; Bebas Neue (SIL OFL).</p>
+      <h2>2 · Colour grade</h2>
+      <div class="row">
+        <button type="button" data-grade="sunset" class="active">Vice Sunset</button>
+        <button type="button" data-grade="neon">Neon Nights</button>
+        <button type="button" data-grade="noir">Palm Noir</button>
+        <button type="button" data-grade="bubble">Bubblegum</button>
+      </div>
+      <p id="gradeBlurb" class="blurb"></p>
     </section>
+
+    <section>
+      <h2>3 · Post size</h2>
+      <div class="row">
+        <button type="button" data-size="1080x1080" class="active">Square 1080×1080</button>
+        <button type="button" data-size="1080x1350">Portrait 1080×1350</button>
+        <button type="button" data-size="1920x1080">Landscape 1920×1080</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>4 · Photo</h2>
+      <p id="panelLabel" class="blurb">Panel 1 of 5</p>
+      <div class="row">
+        <button type="button" data-slot="0">1</button>
+        <button type="button" data-slot="1">2</button>
+        <button type="button" data-slot="2">3</button>
+        <button type="button" data-slot="3">4</button>
+        <button type="button" data-slot="4">5</button>
+      </div>
+      <div class="row">
+        <button id="loadPhotoBtn" type="button">Load your photo…</button>
+        <button id="fillAllBtn" type="button">Fill all panels with this photo</button>
+      </div>
+      <div class="row">
+        <button id="sampleBoulevardBtn" type="button">Sample: boulevard</button>
+        <button id="samplePierBtn" type="button">Sample: pier</button>
+      </div>
+      <input id="photoInput" type="file" accept="image/*" hidden>
+      <label class="slider-label" for="zoomRange">Zoom</label>
+      <input id="zoomRange" type="range" min="1" max="4" step="0.05" value="1">
+    </section>
+
+    <section>
+      <h2>5 · Lettering</h2>
+      <label class="field-label" for="titleInput">Title</label>
+      <input id="titleInput" type="text" value="NEON SHORE" maxlength="24">
+      <label class="field-label" for="subtitleInput">Subtitle</label>
+      <input id="subtitleInput" type="text" value="golden hour in the city" maxlength="48">
+      <p class="field-label">Heat</p>
+      <div class="row">
+        <button type="button" data-heat="1">★</button>
+        <button type="button" data-heat="2">★★</button>
+        <button type="button" data-heat="3" class="active">★★★</button>
+        <button type="button" data-heat="4">★★★★</button>
+        <button type="button" data-heat="5">★★★★★</button>
+      </div>
+      <label class="check"><input id="grainToggle" type="checkbox" checked> Film grain</label>
+      <label class="check"><input id="vignetteToggle" type="checkbox" checked> Vignette</label>
+    </section>
+
+    <p class="fineprint">Your photos never leave this machine. Fonts are the bundled SIL Open Font License faces. No Rockstar artwork, logos or fonts.</p>
   </aside>
 </main>
-
-<div id="shotMode" class="shot-mode" hidden>
-  <canvas id="shotCanvas"></canvas>
-</div>
 
 <script type="module" src="src/app.js"></script>
 </body>

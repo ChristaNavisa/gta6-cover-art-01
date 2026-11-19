@@ -1,59 +1,60 @@
-// Neon Coast Cover Studio — entry program for gta6-cover-art-01.
-// Node 22, standard library only. It hands the app in: it copies this
-// repository's app/ and screenshots/ into the output directory and writes
-// /output/dossier.json with buildDossier from the kit's vendored library
-// (vendor/makefun-app.ts, unchanged).
+// Vice Panel Studio's hand-in program (gta6-cover-art-01).
+// Copies app/ and screenshots/ from this repository into the output
+// directory and writes output/dossier.json with buildDossier from
+// vendor/makefun-app.ts. Outside the grader, MAKEFUN_OUTPUT_DIR stands in
+// for /output; inside it the program writes to /output itself.
 //
-// Run it outside the grader with MAKEFUN_OUTPUT_DIR standing in for /output:
-//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
-// Serve the app locally with `node serve.ts`, then open http://localhost:8080.
+// The output directory is NEVER removed. The grader hands it in as a
+// mounted volume, and removing a mount point fails with EBUSY -- that is
+// what killed round 1. Only the directory's CONTENTS are cleared, child by
+// child, and the directory itself is created if it does not exist yet.
 
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { buildDossier } from "./vendor/makefun-app.ts";
+import {
+  copyFileSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { buildDossier } from './vendor/makefun-app.ts';
 
-// The repository root: the directory this file lives in.
-const repoRoot = fileURLToPath(new URL(".", import.meta.url));
-// The grader writes to /output; a local run uses MAKEFUN_OUTPUT_DIR instead.
-const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
+const repoRoot = fileURLToPath(new URL('.', import.meta.url));
+const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
-// Gate caps from the kit's reference/gate.json, so a local run refuses an
-// entry the sealed scorer would refuse instead of handing in bad bytes.
-const DOSSIER_TEXT_MAX_BYTES = 163840;
-const SCREENSHOTS_MAX = 4;
-const SCREENSHOT_MAX_BYTES = 262144;
-const APP_MAX_FILES = 993;
-const APP_MAX_BYTES = 50331648;
-const APP_PATH_MAX_BYTES = 1000;
-
-function copyTree(source, target) {
-  mkdirSync(target, { recursive: true });
-  cpSync(source, target, { recursive: true });
-}
-
-function main() {
-  // Start from a clean output directory so stale files never leak in.
-  rmSync(outputDir, { recursive: true, force: true });
-  mkdirSync(outputDir, { recursive: true });
-
-  const appSource = join(repoRoot, "app");
-  const shotsSource = join(repoRoot, "screenshots");
-  copyTree(appSource, join(outputDir, "app"));
-  if (existsSync(shotsSource)) {
-    copyTree(shotsSource, join(outputDir, "screenshots"));
-  } else {
-    mkdirSync(join(outputDir, "screenshots"), { recursive: true });
+// Clear a directory's contents without ever removing the directory itself:
+// readdir + rmSync per child works on a bind-mounted volume, where
+// rmSync(dir, { recursive: true }) on the mount point throws EBUSY.
+function emptyContents(dir: string): void {
+  mkdirSync(dir, { recursive: true });
+  for (const name of readdirSync(dir).sort()) {
+    rmSync(join(dir, name), { recursive: true, force: true });
   }
-
-  const dossier = buildDossier(outputDir, {
-    text_max_bytes: DOSSIER_TEXT_MAX_BYTES,
-    screenshots: { max: SCREENSHOTS_MAX, max_bytes: SCREENSHOT_MAX_BYTES },
-    app_max_files: APP_MAX_FILES,
-    app_max_bytes: APP_MAX_BYTES,
-    app_path_max_bytes: APP_PATH_MAX_BYTES,
-  });
-  writeFileSync(join(outputDir, "dossier.json"), dossier);
 }
 
-main();
+// Copy a whole tree, files and subdirectories, in sorted order so both of
+// the grader's runs write the same bytes in the same order.
+function copyTree(src: string, dst: string): void {
+  mkdirSync(dst, { recursive: true });
+  for (const name of readdirSync(src).sort()) {
+    const from = join(src, name);
+    const to = join(dst, name);
+    if (statSync(from).isDirectory()) copyTree(from, to);
+    else copyFileSync(from, to);
+  }
+}
+
+emptyContents(outputDir);
+copyTree(join(repoRoot, 'app'), join(outputDir, 'app'));
+copyTree(join(repoRoot, 'screenshots'), join(outputDir, 'screenshots'));
+writeFileSync(
+  join(outputDir, 'dossier.json'),
+  buildDossier(outputDir, {
+    text_max_bytes: 163840,
+    screenshots: { max: 4, max_bytes: 262144 },
+    app_max_files: 993,
+    app_max_bytes: 50331648,
+  }),
+);
