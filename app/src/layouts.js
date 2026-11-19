@@ -1,69 +1,55 @@
 // Panel layouts for Vice Panel Studio.
-// A layout splits the cover into panels; each panel holds one photo, cropped
-// and positioned by the maker. Rects are fractions of the cover (x, y, w, h),
-// so the same layout works at every post size. Gutters are applied by the
-// renderer, not baked into these numbers.
+//
+// Each layout names its panels as fractions of the cover (x, y, w, h in
+// 0..1) plus a display name for the selected-panel label. The renderer
+// insets every panel by the gutter so panels read as separate poster
+// frames, the way GTA 6's multi-panel covers do.
 
-// 5 panels: one big hero on the left, four small frames in a 2x2 grid right.
-const VICE_GRID = [
-  { x: 0, y: 0, w: 0.62, h: 1 },
-  { x: 0.62, y: 0, w: 0.19, h: 0.5 },
-  { x: 0.81, y: 0, w: 0.19, h: 0.5 },
-  { x: 0.62, y: 0.5, w: 0.19, h: 0.5 },
-  { x: 0.81, y: 0.5, w: 0.19, h: 0.5 },
-];
+export const GUTTER = 0.012;
 
-// 4 panels: a wide hero on top, three frames in a row along the bottom.
-const SUNSET_STRIP = [
-  { x: 0, y: 0, w: 1, h: 0.62 },
-  { x: 0, y: 0.62, w: 1 / 3, h: 0.38 },
-  { x: 1 / 3, y: 0.62, w: 1 / 3, h: 0.38 },
-  { x: 2 / 3, y: 0.62, w: 1 / 3, h: 0.38 },
-];
-
-// 3 panels: three tall vertical frames, side by side.
-const NEON_TRIO = [
-  { x: 0, y: 0, w: 1 / 3, h: 1 },
-  { x: 1 / 3, y: 0, w: 1 / 3, h: 1 },
-  { x: 2 / 3, y: 0, w: 1 / 3, h: 1 },
-];
-
-export const LAYOUTS = [
-  {
-    id: 'grid',
-    name: 'Vice Grid',
-    panels: 5,
-    blurb: 'Hero left, four frames right. The classic five-panel poster.',
-    rects: VICE_GRID,
+export const LAYOUTS = {
+  'vice-grid': {
+    label: 'Vice Grid',
+    panels: [
+      { key: 'hero', name: 'Hero', x: 0, y: 0, w: 0.56, h: 1 },
+      { key: 'p2', name: 'Panel 2', x: 0.56, y: 0, w: 0.22, h: 0.5 },
+      { key: 'p3', name: 'Panel 3', x: 0.78, y: 0, w: 0.22, h: 0.5 },
+      { key: 'p4', name: 'Panel 4', x: 0.56, y: 0.5, w: 0.22, h: 0.5 },
+      { key: 'p5', name: 'Panel 5', x: 0.78, y: 0.5, w: 0.22, h: 0.5 },
+    ],
   },
-  {
-    id: 'strip',
-    name: 'Sunset Strip',
-    panels: 4,
-    blurb: 'Wide hero on top, a film strip of three below it.',
-    rects: SUNSET_STRIP,
+  'sunset-strip': {
+    label: 'Sunset Strip',
+    panels: [
+      { key: 'p1', name: 'Panel 1', x: 0, y: 0, w: 0.5, h: 0.5 },
+      { key: 'p2', name: 'Panel 2', x: 0.5, y: 0, w: 0.5, h: 0.5 },
+      { key: 'p3', name: 'Panel 3', x: 0, y: 0.5, w: 0.5, h: 0.5 },
+      { key: 'p4', name: 'Panel 4', x: 0.5, y: 0.5, w: 0.5, h: 0.5 },
+    ],
   },
-  {
-    id: 'trio',
-    name: 'Neon Trio',
-    panels: 3,
-    blurb: 'Three tall frames, one story in three beats.',
-    rects: NEON_TRIO,
+  'neon-trio': {
+    label: 'Neon Trio',
+    panels: [
+      { key: 'hero', name: 'Hero', x: 0, y: 0, w: 1, h: 0.62 },
+      { key: 'p2', name: 'Panel 2', x: 0, y: 0.62, w: 0.5, h: 0.38 },
+      { key: 'p3', name: 'Panel 3', x: 0.5, y: 0.62, w: 0.5, h: 0.38 },
+    ],
   },
-];
+};
 
-export function layoutById(id) {
-  return LAYOUTS.find((l) => l.id === id) ?? LAYOUTS[0];
-}
+/** The layout ids, in the order the editor shows them. */
+export const LAYOUT_IDS = Object.keys(LAYOUTS);
 
-// Panel rectangles in pixels for a cover of W by H. The rects the layout
-// holds are fractions; this turns them into device pixels.
+/** Panel rects of a layout in pixels for a cover of W x H, gutter applied. */
 export function panelRects(layoutId, W, H) {
-  const layout = layoutById(layoutId);
-  return layout.rects.map((r) => ({
-    x: r.x * W,
-    y: r.y * H,
-    w: r.w * W,
-    h: r.h * H,
+  const layout = LAYOUTS[layoutId] ?? LAYOUTS['vice-grid'];
+  const g = GUTTER * Math.min(W, H);
+  return layout.panels.map((p) => ({
+    key: p.key,
+    name: p.name,
+    x: p.x * W + g / 2,
+    y: p.y * H + g / 2,
+    w: p.w * W - g,
+    h: p.h * H - g,
   }));
 }

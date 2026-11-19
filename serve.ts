@@ -1,49 +1,55 @@
-// Vice Panel Studio's local server: serves app/ over plain HTTP so the app
-// can be tried in a desktop browser exactly as the grader's static server
-// would serve it. No build step, no network, nothing but local files.
+// Vice Panel Studio dev server: serves app/ on http://localhost:8080.
+// Node 22 standard library only. Run from the repository root:
+//
+//   node serve.ts
+//
+// Serves only files under app/, with a small content-type table. No network
+// requests are made by the app itself; this server is only for trying it
+// locally in a desktop browser.
 
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFileSync, statSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const root = fileURLToPath(new URL('./app', import.meta.url));
+const PORT = 8080;
+const APP_DIR = join(process.cwd(), 'app');
 
-const TYPES: Record<string, string> = {
+const CONTENT_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
   '.ttf': 'font/ttf',
   '.txt': 'text/plain; charset=utf-8',
 };
 
-const port = Number(process.env.PORT ?? 8080);
-
-const server = createServer(async (req, res) => {
+const server = createServer((req, res) => {
+  const url = new URL(req.url ?? '/', 'http://localhost');
+  let path = url.pathname === '/' ? '/index.html' : url.pathname;
+  const file = join(APP_DIR, normalize(path).replace(/^(\.\.[/\\])+/, ''));
+  if (!file.startsWith(APP_DIR)) {
+    res.writeHead(403, { 'content-type': 'text/plain' });
+    res.end('forbidden');
+    return;
+  }
   try {
-    const url = new URL(req.url ?? '/', `http://localhost:${port}`);
-    let rel = decodeURIComponent(url.pathname);
-    if (rel === '/') rel = '/index.html';
-    const file = join(root, normalize(rel));
-    if (!file.startsWith(root)) {
-      res.writeHead(403);
-      res.end('forbidden');
-      return;
-    }
-    const body = await readFile(file);
-    res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream' });
+    if (!statSync(file).isFile()) throw new Error('not a file');
+    const body = readFileSync(file);
+    res.writeHead(200, {
+      'content-type': CONTENT_TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream',
+      'content-length': body.length,
+    });
     res.end(body);
   } catch {
-    res.writeHead(404);
+    res.writeHead(404, { 'content-type': 'text/plain' });
     res.end('not found');
   }
 });
 
-server.listen(port, () => {
-  console.log(`Vice Panel Studio at http://localhost:${port}`);
+server.listen(PORT, () => {
+  console.log(`Vice Panel Studio at http://localhost:${PORT}/`);
 });

@@ -1,225 +1,218 @@
-// The cover renderer for Vice Panel Studio.
-// drawCover paints one finished cover onto a 2D canvas: the layout's panels
-// with their photos (cropped and positioned per panel), the colour grade,
-// the bold title lettering with its script subtitle, the heat stars, grain
-// and a vignette. Everything is drawn by hand on canvas -- the exported PNG
-// is exactly what the preview shows, at any post size.
+// Cover rendering for Vice Panel Studio.
+//
+// drawCover paints one cover on a canvas at any size: photos cover-fit
+// into their panel frames with per-panel pan and zoom, the grade wash,
+// the Anton title with its Pacifico subtitle, the star heat meter, film
+// grain and a vignette. Grain uses a seeded generator so the same state
+// always exports the same PNG bytes.
 
 import { panelRects } from './layouts.js';
-import { gradeById, applyGrade } from './grades.js';
+import { GRADES } from './grades.js';
+import { SAMPLE_PHOTOS } from './state.js';
 
-// A small noise tile for the film grain, built once and reused.
-let noiseTile = null;
-function getNoiseTile() {
-  if (noiseTile) return noiseTile;
-  const tile = document.createElement('canvas');
-  tile.width = 128;
-  tile.height = 128;
-  const tctx = tile.getContext('2d');
-  const img = tctx.createImageData(128, 128);
-  for (let i = 0; i < img.data.length; i += 4) {
-    const v = Math.floor(Math.random() * 256);
-    img.data[i] = v;
-    img.data[i + 1] = v;
-    img.data[i + 2] = v;
-    img.data[i + 3] = 255;
-  }
-  tctx.putImageData(img, 0, 0);
-  noiseTile = tile;
-  return tile;
+/** The loaded images, by photo key (a sample name or an upload id). */
+const imageCache = new Map();
+
+/** Load one image by key; sample keys resolve to app/samples/, uploads are data URLs. */
+export function loadPhoto(key) {
+  if (imageCache.has(key)) return Promise.resolve(imageCache.get(key));
+  const src = SAMPLE_PHOTOS[key] ?? key;
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      imageCache.set(key, img);
+      resolve(img);
+    };
+    img.onerror = () => reject(new Error(`cannot load photo ${key}`));
+    img.src = src;
+  });
 }
 
-// Draw a five-pointed star path centred on (cx, cy) with outer radius r.
-function starPath(ctx, cx, cy, r) {
-  const inner = r * 0.42;
+/** Remember an uploaded image under an id, for state to name. */
+export function cacheUpload(id, img) {
+  imageCache.set(id, img);
+}
+
+/** Load every photo a state names (missing ones become null, never fatal). */
+export async function ensurePhotos(state) {
+  const out = [];
+  for (const panel of state.panels) {
+    try {
+      out.push(await loadPhoto(panel.photo));
+    } catch {
+      out.push(null);
+    }
+  }
+  return out;
+}
+
+/** A small seeded generator (mulberry32): stable grain per cover. */
+export function seededRandom(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** One five-pointed star path, centred at (x, y) with outer radius r. */
+function starPath(ctx, x, y, r) {
+  const inner = r * 0.45;
   ctx.beginPath();
   for (let i = 0; i < 10; i++) {
+    const angle = (Math.PI / 5) * i - Math.PI / 2;
     const rad = i % 2 === 0 ? r : inner;
-    const a = -Math.PI / 2 + (i * Math.PI) / 5;
-    const px = cx + Math.cos(a) * rad;
-    const py = cy + Math.sin(a) * rad;
+    const px = x + Math.cos(angle) * rad;
+    const py = y + Math.sin(angle) * rad;
     if (i === 0) ctx.moveTo(px, py);
     else ctx.lineTo(px, py);
   }
   ctx.closePath();
 }
 
-// Draw one panel: the photo cover-fitted with its zoom and pan, the grade
-// washed over it, and a white frame. ox/oy are fractions of the panel size.
-function drawPanel(ctx, panel, rect, grade, gutter) {
-  const x = rect.x + gutter;
-  const y = rect.y + gutter;
-  const w = rect.w - gutter * 2;
-  const h = rect.h - gutter * 2;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(x, y, w, h);
-  ctx.clip();
-  ctx.fillStyle = '#1a1626';
-  ctx.fillRect(x, y, w, h);
-  const img = panel.img;
-  if (img && img.naturalWidth > 0) {
-    const zoom = panel.zoom || 1;
-    const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight) * zoom;
-    const dw = img.naturalWidth * scale;
-    const dh = img.naturalHeight * scale;
-    // Clamp the pan so the photo always covers the panel.
-    const maxOx = Math.max(0, (dw - w) / 2 / w);
-    const maxOy = Math.max(0, (dh - h) / 2 / h);
-    const ox = Math.max(-maxOx, Math.min(maxOx, panel.ox || 0));
-    const oy = Math.max(-maxOy, Math.min(maxOy, panel.oy || 0));
-    const dx = x + (w - dw) / 2 + ox * w;
-    const dy = y + (h - dh) / 2 + oy * h;
-    ctx.drawImage(img, dx, dy, dw, dh);
-    applyGrade(ctx, grade, x, y, w, h);
+/** Draw one panel's photo cover-fit, with its pan and zoom. */
+function drawPanelPhoto(ctx, img, rect, panel) {
+  if (!img) {
+    ctx.fillStyle = '#241a3a';
+    ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    return;
   }
-  ctx.restore();
-  // White poster frame around the panel.
+  const base = Math.max(rect.w / img.naturalWidth, rect.h / img.naturalHeight);
+  const scale = base * panel.scale;
+  const dw = img.naturalWidth * scale;
+  const dh = img.naturalHeight * scale;
+  const dx = rect.x + (rect.w - dw) / 2 + panel.ox * rect.w;
+  const dy = rect.y + (rect.h - dh) / 2 + panel.oy * rect.h;
+  ctx.drawImage(img, dx, dy, dw, dh);
+}
+
+/** Wash one panel rect with a grade's gradient and tint. */
+function gradePanel(ctx, grade, rect) {
+  const grad = ctx.createLinearGradient(rect.x, rect.y, rect.x, rect.y + rect.h);
+  grad.addColorStop(0, grade.top);
+  grad.addColorStop(1, grade.bottom);
   ctx.save();
-  ctx.strokeStyle = 'rgba(255,255,255,0.92)';
-  ctx.lineWidth = Math.max(2, gutter * 0.9);
-  ctx.strokeRect(x, y, w, h);
+  ctx.globalCompositeOperation = 'overlay';
+  ctx.fillStyle = grad;
+  ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+  ctx.globalCompositeOperation = 'soft-light';
+  ctx.globalAlpha = grade.tintAlpha * 2;
+  ctx.fillStyle = grade.tint;
+  ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
   ctx.restore();
 }
 
-// Fit the title across the cover: shrink the font until it fits 92% of the
-// width, then draw it white with a dark outline, tilted a touch.
-function drawTitle(ctx, cover, W, H) {
-  const title = (cover.title || '').toUpperCase();
-  if (!title) return;
-  const bandH = H * 0.26;
-  const bandY = H - bandH;
-  // Dark scrim so the lettering reads over any photo.
-  const scrim = ctx.createLinearGradient(0, bandY - H * 0.08, 0, H);
-  scrim.addColorStop(0, 'rgba(5,4,10,0)');
-  scrim.addColorStop(1, 'rgba(5,4,10,0.78)');
-  ctx.fillStyle = scrim;
-  ctx.fillRect(0, bandY - H * 0.08, W, H * 0.34);
-  let size = H * 0.115;
-  ctx.textBaseline = 'alphabetic';
-  const setFont = (s) => {
-    ctx.font = `400 ${Math.round(s)}px Anton, 'Arial Narrow', sans-serif`;
-    try {
-      ctx.letterSpacing = `${Math.round(s * 0.06)}px`;
-    } catch (e) {
-      /* older canvas: no letter spacing, the title still draws */
-    }
-  };
-  setFont(size);
-  while (ctx.measureText(title).width > W * 0.92 && size > H * 0.04) {
-    size *= 0.92;
-    setFont(size);
-  }
-  const tx = W * 0.04;
-  const ty = H - H * 0.115;
-  ctx.save();
-  ctx.translate(tx, ty);
-  ctx.rotate(-0.022);
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = 'rgba(10,6,16,0.9)';
-  ctx.lineWidth = Math.max(3, size * 0.09);
-  ctx.strokeText(title, 0, 0);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(title, 0, 0);
-  ctx.restore();
-  // Script subtitle under the title, in Pacifico pink-gold.
-  const sub = (cover.subtitle || '').trim();
-  if (sub) {
-    const subSize = Math.max(14, H * 0.042);
-    ctx.save();
-    ctx.font = `400 ${Math.round(subSize)}px Pacifico, cursive`;
-    ctx.fillStyle = '#ffd166';
-    ctx.strokeStyle = 'rgba(10,6,16,0.85)';
-    ctx.lineWidth = Math.max(2, subSize * 0.1);
-    const sx = W * 0.045;
-    const sy = H - H * 0.045;
-    ctx.strokeText(sub, sx, sy);
-    ctx.fillText(sub, sx, sy);
-    ctx.restore();
-  }
-  try {
-    ctx.letterSpacing = '0px';
-  } catch (e) {
-    /* ignore */
-  }
-}
-
-// Five heat stars at the top right: filled gold for the heat level, outlined
-// for the rest. Pure decoration, drawn by hand.
-function drawHeat(ctx, heat, W, H) {
-  const r = Math.max(9, H * 0.022);
-  const gap = r * 2.5;
-  const total = gap * 4 + r * 2;
-  let cx = W - W * 0.04 - total + r;
-  const cy = H * 0.055;
-  for (let i = 0; i < 5; i++) {
-    starPath(ctx, cx, cy, r);
-    if (i < heat) {
-      ctx.fillStyle = '#ffd166';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(10,6,16,0.9)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    } else {
-      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-    cx += gap;
-  }
-}
-
-// Paint the whole cover. cover = { layoutId, gradeId, title, subtitle,
-// heat, grain, vignette, panels: [{ img, zoom, ox, oy }, ...] }.
-export function drawCover(ctx, cover, W, H) {
-  const grade = gradeById(cover.gradeId);
-  const rects = panelRects(cover.layoutId, W, H);
-  const gutter = Math.max(3, Math.min(W, H) * 0.006);
-  ctx.save();
-  ctx.fillStyle = '#0d0b12';
-  ctx.fillRect(0, 0, W, H);
-  rects.forEach((rect, i) => {
-    const panel = cover.panels[i] || {};
-    drawPanel(ctx, panel, rect, grade, gutter);
-  });
-  drawTitle(ctx, cover, W, H);
-  drawHeat(ctx, cover.heat || 0, W, H);
-  if (cover.grain) {
-    ctx.save();
-    ctx.globalAlpha = 0.05;
-    ctx.fillStyle = ctx.createPattern(getNoiseTile(), 'repeat');
-    ctx.fillRect(0, 0, W, H);
-    ctx.restore();
-  }
-  if (cover.vignette) {
-    const vg = ctx.createRadialGradient(
-      W / 2, H / 2, Math.min(W, H) * 0.42,
-      W / 2, H / 2, Math.max(W, H) * 0.75,
-    );
-    vg.addColorStop(0, 'rgba(0,0,0,0)');
-    vg.addColorStop(1, 'rgba(0,0,0,0.38)');
-    ctx.fillStyle = vg;
-    ctx.fillRect(0, 0, W, H);
-  }
-  // Thin outer frame, the poster's edge.
-  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-  ctx.lineWidth = Math.max(2, H * 0.005);
-  ctx.strokeRect(0, 0, W, H);
-  ctx.restore();
-}
-
-// A fresh canvas with the cover drawn at W by H.
-export function coverCanvas(cover, W, H) {
-  const canvas = document.createElement('canvas');
+/** Paint the whole cover on `canvas` at W x H from a state and its images. */
+export function drawCover(canvas, state, W, H, images) {
   canvas.width = W;
   canvas.height = H;
-  drawCover(canvas.getContext('2d'), cover, W, H);
-  return canvas;
+  const ctx = canvas.getContext('2d');
+  const grade = GRADES[state.grade] ?? GRADES['vice-sunset'];
+  const rects = panelRects(state.layout, W, H);
+
+  ctx.fillStyle = grade.frame;
+  ctx.fillRect(0, 0, W, H);
+
+  rects.forEach((rect, i) => {
+    const panel = state.panels[i];
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(rect.x, rect.y, rect.w, rect.h);
+    ctx.clip();
+    drawPanelPhoto(ctx, images[i] ?? null, rect, panel);
+    gradePanel(ctx, grade, rect);
+    ctx.restore();
+    ctx.strokeStyle = grade.frame;
+    ctx.lineWidth = Math.max(2, W * 0.004);
+    ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+  });
+
+  // Title block: bold Anton title, Pacifico subtitle, bottom left.
+  const titleSize = Math.round(H * 0.085);
+  const subSize = Math.round(H * 0.032);
+  const pad = Math.round(W * 0.03);
+  ctx.save();
+  ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = 'rgba(0,0,0,0.75)';
+  ctx.shadowBlur = Math.round(H * 0.012);
+  ctx.shadowOffsetY = Math.round(H * 0.004);
+  ctx.fillStyle = grade.title;
+  ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+  ctx.lineWidth = Math.max(2, titleSize * 0.06);
+  ctx.font = `${titleSize}px Anton, 'Bebas Neue', sans-serif`;
+  const title = (state.title || 'UNTITLED').toUpperCase();
+  const ty = H - pad - subSize - Math.round(H * 0.012);
+  ctx.strokeText(title, pad, ty);
+  ctx.fillText(title, pad, ty);
+  ctx.shadowBlur = Math.round(H * 0.008);
+  ctx.fillStyle = grade.subtitle;
+  ctx.font = `${subSize}px Pacifico, cursive`;
+  ctx.fillText(state.subtitle || '', pad, H - pad);
+  ctx.restore();
+
+  // Star heat meter, top right, on a dark pill so it reads over any photo.
+  const starR = Math.round(H * 0.022);
+  const gap = starR * 2.4;
+  const total = gap * 4 + starR * 2;
+  const pillX = W - pad - total - starR;
+  const pillY = pad - starR * 0.4;
+  const pillW = total + starR * 2;
+  const pillH = starR * 2.8;
+  ctx.save();
+  ctx.fillStyle = 'rgba(10, 6, 20, 0.55)';
+  ctx.beginPath();
+  ctx.roundRect(pillX, pillY, pillW, pillH, pillH / 2);
+  ctx.fill();
+  ctx.restore();
+  let sx = W - pad - total + starR;
+  const sy = pad + starR;
+  for (let i = 0; i < 5; i++) {
+    starPath(ctx, sx + i * gap, sy, starR);
+    if (i < state.stars) {
+      ctx.fillStyle = grade.star;
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+      ctx.lineWidth = Math.max(1.5, starR * 0.12);
+      ctx.stroke();
+    }
+  }
+
+  // Film grain (seeded, so exports are stable) and a vignette.
+  const rand = seededRandom(20261119 + W * 7 + H * 13);
+  const dots = Math.round((W * H) / 900);
+  ctx.save();
+  ctx.globalAlpha = 0.05;
+  ctx.fillStyle = '#ffffff';
+  for (let i = 0; i < dots; i++) {
+    const x = rand() * W;
+    const y = rand() * H;
+    ctx.fillRect(x, y, 1.5, 1.5);
+  }
+  ctx.restore();
+  const vig = ctx.createRadialGradient(
+    W / 2, H / 2, Math.min(W, H) * 0.45,
+    W / 2, H / 2, Math.max(W, H) * 0.75,
+  );
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.32)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, W, H);
 }
 
-// The cover as a PNG blob at W by H.
-export function exportCoverPNG(cover, W, H) {
-  return new Promise((resolve) => {
-    coverCanvas(cover, W, H).toBlob((blob) => resolve(blob), 'image/png');
+/** Render a cover offscreen at W x H and return its PNG blob. */
+export async function exportCover(state, size) {
+  const [w, h] = size.split('x').map(Number);
+  const images = await ensurePhotos(state);
+  const canvas = document.createElement('canvas');
+  drawCover(canvas, state, w, h, images);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error('export failed'));
+    }, 'image/png');
   });
 }
