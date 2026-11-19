@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neon Coast Cover Studio — GTA-style cover maker</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">NC</span>
+    <div>
+      <h1>Neon Coast Cover Studio</h1>
+      <p>Turn any photo into GTA-style cover art — offline, no upload.</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <button id="undoBtn" class="btn ghost" type="button" title="Undo">↩ Undo</button>
+    <button id="redoBtn" class="btn ghost" type="button" title="Redo">↪ Redo</button>
+    <label class="size-pick">Size
+      <select id="sizeSelect">
+        <option value="1080x1080">1080 × 1080 · Square</option>
+        <option value="1080x1350">1080 × 1350 · Portrait</option>
+        <option value="1920x1080">1920 × 1080 · Wide</option>
+        <option value="1080x1920">1080 × 1920 · Story</option>
+      </select>
+    </label>
+    <button id="exportBtn" class="btn primary" type="button">⬇ Export PNG</button>
+    <button id="exportAllBtn" class="btn accent" type="button">Export all sizes</button>
+  </div>
+</header>
+
+<main class="workspace">
+  <aside class="panel left">
+    <section>
+      <h2>1 · Photos</h2>
+      <p class="hint">Your photos never leave this machine.</p>
+      <button id="addPhotosBtn" class="btn wide" type="button">＋ Add photos…</button>
+      <input id="photoInput" type="file" accept="image/*" multiple hidden>
+      <div class="samples">
+        <button id="sampleBoulevard" class="btn small" type="button">Sample · Boulevard</button>
+        <button id="samplePier" class="btn small" type="button">Sample · Pier</button>
+      </div>
+      <div id="photoStrip" class="photo-strip" aria-label="Loaded photos"></div>
+      <button id="fillAllBtn" class="btn small wide" type="button">Fill every panel with selected photo</button>
+    </section>
+
+    <section>
+      <h2>2 · Layout</h2>
+      <div id="layoutGrid" class="choice-grid"></div>
+    </section>
+
+    <section>
+      <h2>3 · Colour grade</h2>
+      <div id="gradeGrid" class="choice-grid"></div>
+    </section>
+  </aside>
+
+  <section class="stage">
+    <div class="stage-head">
+      <span id="stageLabel">Live preview — click a panel to edit it, drag to move the photo, scroll to zoom</span>
+      <span id="panelLabel" class="panel-label">Panel 1 · Hero</span>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="preview" width="1080" height="1080"></canvas>
+    </div>
+    <div class="stage-foot">
+      <span>Tip: one photo can fill every panel — or give each panel its own.</span>
+      <span id="photoCount">0 photos loaded</span>
+    </div>
+  </section>
+
+  <aside class="panel right">
+    <section>
+      <h2>Lettering</h2>
+      <label class="field">Title
+        <input id="titleInput" type="text" value="NEON COAST" maxlength="24" spellcheck="false">
+      </label>
+      <label class="field">Subtitle (script)
+        <input id="subtitleInput" type="text" value="one last ride" maxlength="40" spellcheck="false">
+      </label>
+      <label class="field">Badge ribbon
+        <input id="badgeInput" type="text" value="LAUNCH WEEK" maxlength="20" spellcheck="false">
+      </label>
+      <label class="field">Title style
+        <select id="titleStyleSelect">
+          <option value="white">White Anton, hard shadow</option>
+          <option value="sunset">Sunset gradient fill</option>
+          <option value="neon">Neon outline glow</option>
+          <option value="halftone">Halftone title block</option>
+        </select>
+      </label>
+      <label class="field">Heat meter
+        <span class="heat-row">
+          <input id="heatRange" type="range" min="0" max="5" step="1" value="4">
+          <span id="heatStars" class="heat-stars">★★★★☆</span>
+        </span>
+      </label>
+    </section>
+
+    <section>
+      <h2>Selected panel</h2>
+      <label class="field">Photo in this panel
+        <select id="panelPhotoSelect"></select>
+      </label>
+      <label class="field">Zoom
+        <input id="zoomRange" type="range" min="50" max="300" step="1" value="100">
+      </label>
+      <div class="btn-row">
+        <button id="centerBtn" class="btn small" type="button">Centre photo</button>
+        <button id="resetPanelBtn" class="btn small" type="button">Reset panel</button>
+      </div>
+      <p class="hint">Drag the photo inside the panel to reposition it. Scroll over a panel to zoom.</p>
+    </section>
+
+    <section>
+      <h2>Finish</h2>
+      <label class="check"><input id="grainCheck" type="checkbox" checked> Film grain</label>
+      <label class="check"><input id="vignetteCheck" type="checkbox" checked> Vignette</label>
+      <label class="check"><input id="frameCheck" type="checkbox" checked> Poster frame</label>
+      <label class="check"><input id="inkCheck" type="checkbox"> Poster ink (banded panels)</label>
+      <label class="check"><input id="halftoneCheck" type="checkbox" checked> Halftone dots</label>
+      <p class="hint">Original art only — no game logos, artwork or fonts. Lettering: Anton, Pacifico &amp; Bebas Neue (SIL OFL).</p>
+    </section>
+  </aside>
+</main>
+
+<div id="shotMode" class="shot-mode" hidden>
+  <canvas id="shotCanvas"></canvas>
+</div>
+
+<script type="module" src="src/app.js"></script>
+</body>
+</html>
