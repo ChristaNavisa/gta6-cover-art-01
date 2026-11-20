@@ -1,91 +1,96 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vice Panel Studio — GTA 6-style cover art maker</title>
+<title>Vice Heat — Cover Studio</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="topbar">
   <div class="brand">
-    <span class="brand-mark">★</span>
+    <span class="brand-mark">VH</span>
     <div>
-      <h1>Vice Panel Studio</h1>
-      <p>Turn any photo and caption into GTA 6-style cover art — offline, in your browser.</p>
+      <h1>VICE HEAT <span>Cover Studio</span></h1>
+      <p>Your photos become a framed crime-epic key art poster.</p>
     </div>
   </div>
   <div class="top-actions">
-    <button id="undoBtn" type="button" title="Undo">↩ Undo</button>
-    <button id="redoBtn" type="button" title="Redo">↪ Redo</button>
-    <button id="exportAll" type="button" class="primary">Export all 3 sizes</button>
+    <button id="undo" type="button">↶ Undo</button>
+    <button id="redo" type="button">↷ Redo</button>
+    <button id="fill-all" type="button">Fill all panels</button>
+    <button id="shuffle" type="button">Shuffle cast</button>
+    <button id="export" type="button" class="primary">Export PNG</button>
   </div>
 </header>
 
 <main class="studio">
-  <section class="preview-col">
-    <div class="stage-wrap">
-      <canvas id="stage" width="560" height="560" aria-label="Cover preview"></canvas>
-      <canvas id="shotCanvas" width="1080" height="1080" hidden aria-label="Cover shot"></canvas>
-    </div>
-    <p id="panelLabel" class="panel-label">Panel 1 of 7</p>
-    <div class="panel-tools">
-      <button id="zoomOut" type="button">− Zoom</button>
-      <button id="zoomIn" type="button">+ Zoom</button>
-      <button id="uploadBtn" type="button">Upload photo for this panel</button>
-      <button id="peopleBtn" type="button">Fill with people photos</button>
-      <input id="fileInput" type="file" accept="image/*" hidden>
-    </div>
-    <p class="hint">Click a panel to select it. Drag to move the photo, scroll to zoom. Photos never leave your machine.</p>
-    <p id="selftestNote" class="selftest"></p>
-  </section>
-
-  <aside class="controls">
+  <aside class="panel panel-left">
     <section>
-      <h2>Layout</h2>
-      <div id="layoutChips" class="chips"></div>
+      <h2>Layout <span>9</span></h2>
+      <div id="layouts" class="layouts"></div>
     </section>
     <section>
-      <h2>Grade</h2>
-      <div id="gradeChips" class="chips"></div>
+      <h2>Grade <span>9</span></h2>
+      <div id="grades" class="grades"></div>
     </section>
     <section>
       <h2>Post size</h2>
-      <div id="sizeChips" class="chips"></div>
+      <div id="sizes" class="sizes"></div>
+      <p class="hint">Exports at 1080×1080, 1080×1350 or 1920×1080.</p>
+    </section>
+  </aside>
+
+  <section class="stage" id="stage">
+    <canvas id="cover" width="960" height="1200" aria-label="Cover preview"></canvas>
+    <p id="selected-panel" class="selected-panel">Panel 1: —</p>
+    <p class="hint">Click a panel to select it, drag to pan the photo, scroll to zoom. Ctrl+Z undoes.</p>
+    <pre id="selftest" class="selftest" hidden></pre>
+  </section>
+
+  <aside class="panel panel-right">
+    <section>
+      <h2>Cast <span>8</span></h2>
+      <div id="cast" class="cast"></div>
+      <p class="hint">Click a face to put them in the selected panel. Upload your own photo — it never leaves this machine.</p>
     </section>
     <section>
       <h2>Caption</h2>
-      <label>Title <input id="titleInput" type="text" maxlength="24" value="NEON SHORE"></label>
-      <label>Subtitle <input id="subtitleInput" type="text" maxlength="40" value="VICE CITY · EST. 2026"></label>
-      <label>Caption line <input id="captionInput" type="text" maxlength="80" value="A Vice City story, told in seven panels."></label>
+      <label>Title
+        <input id="title-input" type="text" value="VICE HEAT" maxlength="24">
+      </label>
+      <label>Subtitle
+        <input id="subtitle-input" type="text" value="Chasing the Last Light" maxlength="48">
+      </label>
+      <label>Tagline
+        <input id="tagline-input" type="text" value="EVERYONE'S GOT A PRICE IN LEONIDA" maxlength="64">
+      </label>
+      <label>Heat
+        <select id="heat-input">
+          <option value="1">★ 1/5</option>
+          <option value="2">★★ 2/5</option>
+          <option value="3">★★★ 3/5</option>
+          <option value="4">★★★★ 4/5</option>
+          <option value="5" selected>★★★★★ 5/5</option>
+        </select>
+      </label>
     </section>
     <section>
-      <h2>Cast role tags</h2>
-      <div id="castEditor"></div>
-      <p class="hint">Name + role per tag, up to four. They print as pills on the cover.</p>
-    </section>
-    <section>
-      <h2>Callouts &amp; seal</h2>
-      <div id="calloutList" class="checks"></div>
-      <label class="check"><input id="sealToggle" type="checkbox" checked> Seal stamp on the cover</label>
-      <label class="check"><input id="peopleToggle" type="checkbox" checked> People-first photo flow (crop to faces)</label>
-    </section>
-    <section>
-      <h2>Heat</h2>
-      <div id="heatStars" class="heat">
-        <button type="button" aria-label="1 star">★</button><button type="button" aria-label="2 stars">★</button><button type="button" aria-label="3 stars">★</button><button type="button" aria-label="4 stars">★</button><button type="button" aria-label="5 stars">★</button>
-      </div>
-    </section>
-    <section>
-      <h2>Export PNG</h2>
-      <div id="exportSizes" class="export-list"></div>
-      <p id="exportNote" class="hint"></p>
+      <h2>Cover furniture</h2>
+      <label class="check"><input id="toggle-showFurniture" type="checkbox" checked> Furniture on</label>
+      <label class="check"><input id="toggle-showSeal" type="checkbox" checked> Gold roundel seal</label>
+      <label class="check"><input id="toggle-showBilling" type="checkbox" checked> Billing block</label>
+      <label class="check"><input id="toggle-showRating" type="checkbox" checked> 18+ Leonida box</label>
+      <label class="check"><input id="toggle-showPlatforms" type="checkbox" checked> PS5 / Xbox / PC pills</label>
+      <label class="check"><input id="toggle-showBarcode" type="checkbox" checked> Barcode</label>
+      <label class="check"><input id="toggle-showQuote" type="checkbox" checked> Press quote</label>
     </section>
   </aside>
 </main>
 
 <footer class="foot">
-  <p>Vice Panel Studio — your photos stay on your machine. Fonts: Bungee, Monoton and Racing Sans One under the SIL Open Font License. Not affiliated with Rockstar Games.</p>
+  <p>Vice Heat is an original poster studio. The eight cast portraits were made for this app. No Rockstar artwork, logos or fonts are used.</p>
+  <p><a href="https://make.fun/bounty/gta6-cover-art-01">make.fun · gta6-cover-art-01</a></p>
 </footer>
 
 <script type="module" src="src/app.js"></script>
