@@ -1,34 +1,27 @@
-// gta6-cover-art-01 entrypoint (Node 22, standard library only).
-//
-// The entry hands the app in: it copies app/ and screenshots/ from the
-// repository into /output and writes /output/dossier.json with buildDossier
-// from vendor/makefun-app.ts, as the kit's starter does. Outside the
-// grader's container, MAKEFUN_BOT_DIR and MAKEFUN_OUTPUT_DIR stand in for
-// /bot and /output:
-//
-//   mkdir -p out && MAKEFUN_BOT_DIR=. MAKEFUN_OUTPUT_DIR=out node main.ts
-//
-// The output directory is a bind-mounted volume in the grader, so this file
-// NEVER removes the output directory itself: rmSync on a mount point throws
-// EBUSY and the run fails. It clears only the directory's CONTENTS, then
-// copies the entry in, in sorted order, so two runs write identical bytes.
-
+// Vice Panel Studio — entrypoint: hands app/ and screenshots/ to the output
+// directory and writes dossier.json with buildDossier from vendor/makefun-app.ts.
+// Runs on Node 22, standard library only. MAKEFUN_OUTPUT_DIR stands in for
+// /output outside the grader.
 import { buildDossier } from './vendor/makefun-app.ts';
 import {
-  copyFileSync,
+  cpSync,
   mkdirSync,
   readdirSync,
   readFileSync,
   rmSync,
-  statSync,
   writeFileSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const botDir = process.env.MAKEFUN_BOT_DIR ?? '/bot';
-const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)));
+const OUTPUT_DIR = process.env.MAKEFUN_OUTPUT_DIR
+  ? resolve(process.env.MAKEFUN_OUTPUT_DIR)
+  : '/output';
 
-/** Remove every child of `dir`, never `dir` itself (it may be a mount point). */
+// Clears only the contents of a directory, never the directory itself.
+// rmSync on the output directory itself throws EBUSY when the grader hands it
+// in as a mount point, so the directory is emptied child by child instead.
 function emptyContents(dir: string): void {
   mkdirSync(dir, { recursive: true });
   for (const name of readdirSync(dir)) {
@@ -36,48 +29,61 @@ function emptyContents(dir: string): void {
   }
 }
 
-/** Copy a directory tree, children in sorted order, directories included. */
-function copyTree(src: string, dst: string): void {
+// Copies a directory tree of plain files, counting the files it copies.
+function copyTree(src: string, dst: string): number {
+  let files = 0;
   mkdirSync(dst, { recursive: true });
-  for (const name of readdirSync(src).sort()) {
-    const from = join(src, name);
-    const to = join(dst, name);
-    if (statSync(from).isDirectory()) copyTree(from, to);
-    else copyFileSync(from, to);
+  for (const entry of readdirSync(src, { withFileTypes: true })) {
+    const from = join(src, entry.name);
+    const to = join(dst, entry.name);
+    if (entry.isDirectory()) files += copyTree(from, to);
+    else if (entry.isFile()) {
+      cpSync(from, to);
+      files += 1;
+    }
   }
+  return files;
 }
 
-emptyContents(outputDir);
-copyTree(join(botDir, 'app'), join(outputDir, 'app'));
-copyTree(join(botDir, 'screenshots'), join(outputDir, 'screenshots'));
-const dossierPath = join(outputDir, 'dossier.json');
-writeFileSync(
-  dossierPath,
-  buildDossier(outputDir, {
-    text_max_bytes: 163840,
-    screenshots: { max: 4, max_bytes: 262144 },
-    app_max_files: 993,
-    app_max_bytes: 50331648,
-  }),
+emptyContents(OUTPUT_DIR);
+const appFiles = copyTree(join(REPO_ROOT, 'app'), join(OUTPUT_DIR, 'app'));
+const shotFiles = copyTree(
+  join(REPO_ROOT, 'screenshots'),
+  join(OUTPUT_DIR, 'screenshots'),
 );
+const dossier = buildDossier(OUTPUT_DIR, {
+  text_max_bytes: 163840,
+  screenshots: { max: 4, max_bytes: 262144 },
+  app_max_files: 993,
+  app_max_bytes: 48 * 1024 * 1024,
+  app_path_max_bytes: 1000,
+});
+writeFileSync(join(OUTPUT_DIR, 'dossier.json'), dossier);
 
-// Verify what was written before reporting success: the dossier must be
-// the schema buildDossier writes and fit the gate's 1.5 MiB cap, and the
-// screenshots must all be present. A run that hands in a broken dossier
-// fails loudly here instead of at grading.
-const dossier = JSON.parse(readFileSync(dossierPath, 'utf8'));
-if (dossier.schema !== 'makefun/dossier/v1') {
-  throw new Error(`dossier.json: unexpected schema ${String(dossier.schema)}`);
+// Round-trip check: the bytes on disk must be exactly the bytes buildDossier
+// returned, so the grader's rebuild matches this run byte for byte.
+const written = readFileSync(join(OUTPUT_DIR, 'dossier.json'));
+if (!written.equals(Buffer.from(dossier))) {
+  throw new Error('dossier verification failed: bytes on disk differ from the built dossier');
 }
-const dossierBytes = statSync(dossierPath).size;
-if (dossierBytes > 1572864) {
-  throw new Error(`dossier.json: ${dossierBytes} bytes, over the 1.5 MiB cap`);
+
+// Post-build verification: read the dossier back and check it before reporting.
+const dossierText = new TextDecoder('utf-8').decode(written);
+if (!dossierText.includes('makefun/dossier/v1')) {
+  throw new Error('dossier verification failed: schema makefun/dossier/v1 not found');
 }
-const shots = readdirSync(join(outputDir, 'screenshots')).sort();
-if (shots.length < 3 || shots.length > 4) {
-  throw new Error(`screenshots/: ${shots.length} images, need 3 or 4`);
+if (written.length > 1572864) {
+  throw new Error(`dossier verification failed: ${written.length} bytes over the 1.5 MiB cap`);
+}
+const shotCount = readdirSync(join(OUTPUT_DIR, 'screenshots')).filter(
+  (n) => !n.startsWith('.'),
+).length;
+if (shotCount < 3 || shotCount > 4) {
+  throw new Error(`dossier verification failed: ${shotCount} screenshots, need 3 or 4`);
 }
 console.log(
-  `Vice Panel Studio: app/ + ${shots.length} screenshots -> ${outputDir} ` +
-    `(dossier.json ${dossierBytes} bytes)`,
+  `verified: dossier ${written.length} bytes, schema makefun/dossier/v1, ${shotCount} screenshots, ${appFiles} app files`,
+);
+console.log(
+  `dossier OK: ${shotFiles} screenshots, ${appFiles} app files, ${dossier.length} bytes -> ${OUTPUT_DIR}/dossier.json`,
 );

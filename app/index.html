@@ -1,100 +1,83 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vice Panel Studio — GTA 6 cover maker</title>
+<title>Vice Panel Studio — GTA 6-style cover art maker</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="topbar">
   <div class="brand">
     <h1>VICE PANEL STUDIO</h1>
-    <p>Turn any photo into GTA 6-style cover art — multi-panel, neon sunset, PNG to share.</p>
+    <p>Turn any photo into GTA 6-style cover art — offline, in your browser.</p>
   </div>
   <div class="top-actions">
-    <button id="undoBtn" type="button" title="Undo (Ctrl+Z)">Undo</button>
-    <button id="redoBtn" type="button" title="Redo (Ctrl+Shift+Z)">Redo</button>
+    <button id="undoBtn" type="button" title="Undo (Ctrl+Z)">↩ Undo</button>
+    <button id="redoBtn" type="button" title="Redo (Ctrl+Shift+Z)">↪ Redo</button>
   </div>
 </header>
 
-<main class="editor">
-  <section class="stage">
-    <canvas id="cover" width="1080" height="1080" aria-label="Cover preview"></canvas>
-    <p class="stage-hint">Click a panel to select it, drag to pan its photo, scroll or use the slider to zoom. Drop a photo onto a panel to replace it.</p>
-  </section>
+<section class="toolbar" aria-label="Layout, grade and size">
+  <div class="group">
+    <span class="group-label">Layout</span>
+    <button type="button" data-layout="vice-grid" class="active">Vice Grid · 5</button>
+    <button type="button" data-layout="sunset-strip">Sunset Strip · 4</button>
+    <button type="button" data-layout="neon-trio">Neon Trio · 3</button>
+  </div>
+  <div class="group">
+    <span class="group-label">Grade</span>
+    <button type="button" data-grade="vice-sunset" class="active">Vice Sunset</button>
+    <button type="button" data-grade="neon-nights">Neon Nights</button>
+    <button type="button" data-grade="palm-noir">Palm Noir</button>
+    <button type="button" data-grade="bubblegum">Bubblegum</button>
+  </div>
+  <div class="group">
+    <span class="group-label">Post size</span>
+    <button type="button" data-size="square" class="active">1080 × 1080</button>
+    <button type="button" data-size="portrait">1080 × 1350</button>
+    <button type="button" data-size="wide">1920 × 1080</button>
+  </div>
+</section>
 
-  <aside class="controls">
-    <section class="group">
-      <h2>Layout</h2>
-      <div class="row" id="layoutRow">
-        <button type="button" data-layout="vice-grid">Vice Grid · 5 panels</button>
-        <button type="button" data-layout="sunset-strip">Sunset Strip · 4 panels</button>
-        <button type="button" data-layout="neon-trio">Neon Trio · 3 panels</button>
-      </div>
-    </section>
+<main class="workspace">
+  <div class="stage">
+    <canvas id="preview" width="720" height="720"></canvas>
+    <p class="hint">Drag a photo to pan it · scroll to zoom · click a panel row to select it</p>
+  </div>
 
-    <section class="group">
-      <h2>Colour grade</h2>
-      <div class="row" id="gradeRow">
-        <button type="button" data-grade="vice-sunset">Vice Sunset</button>
-        <button type="button" data-grade="neon-nights">Neon Nights</button>
-        <button type="button" data-grade="palm-noir">Palm Noir</button>
-        <button type="button" data-grade="bubblegum">Bubblegum</button>
-      </div>
-    </section>
-
-    <section class="group">
+  <aside class="sidebar">
+    <section class="card">
       <h2>Caption</h2>
       <label>Title
-        <input id="titleInput" type="text" value="NEON SHORE" maxlength="24" autocomplete="off">
+        <input id="titleInput" type="text" value="NEON SHORE" maxlength="24">
       </label>
       <label>Subtitle
-        <input id="subtitleInput" type="text" value="golden hour in the city" maxlength="48" autocomplete="off">
+        <input id="subtitleInput" type="text" value="golden hour in the city" maxlength="48">
       </label>
-      <div class="stars" id="starRow" role="group" aria-label="Heat meter">
-        <span>Heat</span>
-        <button type="button" data-stars="1" aria-label="1 star">★</button>
-        <button type="button" data-stars="2" aria-label="2 stars">★</button>
-        <button type="button" data-stars="3" aria-label="3 stars">★</button>
-        <button type="button" data-stars="4" aria-label="4 stars">★</button>
-        <button type="button" data-stars="5" aria-label="5 stars">★</button>
-      </div>
+      <label>Heat meter
+        <input id="starsInput" type="range" min="0" max="5" step="1" value="3">
+        <span id="starsValue">3 / 5</span>
+      </label>
     </section>
 
-    <section class="group">
+    <section class="card">
       <h2>Photos</h2>
-      <div class="row">
-        <button id="fillAllBtn" type="button">Fill all panels with one photo</button>
-        <button id="loadPanelBtn" type="button">Load photo into selected panel</button>
-      </div>
-      <label class="slider-label">Zoom selected panel
-        <input id="zoomSlider" type="range" min="1" max="3" step="0.05" value="1">
+      <div id="panelList"></div>
+      <label>Zoom selected panel
+        <input id="zoomInput" type="range" min="50" max="300" step="5" value="100">
       </label>
-      <p class="note">Selected panel: <strong id="selectedPanelLabel">Hero</strong>. The two sample photos (boulevard, pier) ship with the app; your own photos stay on your machine.</p>
-      <input id="fileInput" type="file" accept="image/*" hidden>
-      <input id="fillInput" type="file" accept="image/*" hidden>
+      <button id="fillAllBtn" type="button">Fill all panels with the selected photo</button>
     </section>
 
-    <section class="group">
-      <h2>Export PNG</h2>
-      <div class="row" id="sizeRow">
-        <button type="button" data-size="1080x1080">1080 × 1080</button>
-        <button type="button" data-size="1080x1350">1080 × 1350</button>
-        <button type="button" data-size="1920x1080">1920 × 1080</button>
-      </div>
-      <div class="row">
-        <button id="exportBtn" type="button" class="primary">Export this size</button>
-        <button id="exportAllBtn" type="button" class="primary">Export all 3 sizes</button>
-      </div>
-      <p class="note">Exports are drawn fresh from your panels at full size — what you see is what you share.</p>
+    <section class="card">
+      <h2>Export</h2>
+      <button id="exportBtn" type="button" class="primary">Export PNG at the chosen size</button>
+      <button id="exportAllBtn" type="button">Export all 3 sizes</button>
+      <p class="note">PNGs download straight from your browser. Photos never leave this machine.</p>
     </section>
   </aside>
 </main>
-
-<footer class="foot">
-  <p>Vice Panel Studio — an offline cover maker. Photos never leave your machine. Fonts: Anton, Bebas Neue and Pacifico under the SIL Open Font License. No Rockstar Games logo, artwork or font.</p>
-</footer>
 
 <script type="module" src="src/app.js"></script>
 </body>

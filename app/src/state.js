@@ -1,82 +1,65 @@
-// Cover state and history for Vice Panel Studio.
-//
-// The state is plain JSON (photo keys, not Image objects), so it can be
-// snapshotted for undo/redo and stored in localStorage. Panel transforms
-// are per panel: `scale` zooms the photo inside its frame, `ox`/`oy` pan
-// it as fractions of the panel.
+// Vice Panel Studio — the cover state and its undo/redo history.
+// A cover is a layout, a grade, a caption, a heat-meter rating and one photo
+// slot per panel, each with its own crop (zoom + pan offsets).
+export const LAYOUTS = ['vice-grid', 'sunset-strip', 'neon-trio'];
+export const GRADES = ['vice-sunset', 'neon-nights', 'palm-noir', 'bubblegum'];
+export const PANEL_COUNT = { 'vice-grid': 5, 'sunset-strip': 4, 'neon-trio': 3 };
+export const SAMPLE_PHOTOS = ['samples/boulevard.jpg', 'samples/pier.jpg'];
 
-import { LAYOUTS } from './layouts.js';
-
-export const SIZES = ['1080x1080', '1080x1350', '1920x1080'];
-
-export const SAMPLE_PHOTOS = {
-  boulevard: 'samples/boulevard.jpg',
-  pier: 'samples/pier.jpg',
-};
-
-/** The sample photos, dealt across the panels in order. */
-function defaultPanels(layoutId) {
-  const keys = Object.keys(SAMPLE_PHOTOS);
-  return LAYOUTS[layoutId].panels.map((p, i) => ({
-    key: p.key,
-    photo: keys[i % keys.length],
-    scale: 1,
-    ox: 0,
-    oy: 0,
-  }));
+// One panel's photo: a source (a sample path or an object URL from a file
+// the user loaded) plus the crop that positions it inside the panel.
+export function blankPanel(photo) {
+  return { photo: photo ?? null, scale: 1, ox: 0, oy: 0 };
 }
 
-/** A fresh cover state for a layout. */
-export function freshState(layoutId = 'vice-grid') {
+export function blankState() {
   return {
-    layout: layoutId,
+    layout: 'vice-grid',
     grade: 'vice-sunset',
-    size: '1080x1080',
     title: 'NEON SHORE',
     subtitle: 'golden hour in the city',
     stars: 3,
-    selected: 0,
-    panels: defaultPanels(layoutId),
+    panels: [
+      blankPanel('samples/boulevard.jpg'),
+      blankPanel('samples/pier.jpg'),
+      blankPanel('samples/boulevard.jpg'),
+      blankPanel('samples/pier.jpg'),
+      blankPanel('samples/boulevard.jpg'),
+    ],
   };
 }
 
-/** A deep copy of a state (JSON round-trip; state holds no functions). */
-export function cloneState(state) {
+// A deep copy of a state, for the history stack.
+export function snapshot(state) {
   return JSON.parse(JSON.stringify(state));
 }
 
-/** Resize a state's panels to a new layout, keeping photos where they fit. */
-export function reLayout(state, layoutId) {
-  const next = cloneState(state);
-  next.layout = layoutId;
-  const old = next.panels;
-  next.panels = LAYOUTS[layoutId].panels.map((p, i) => {
-    const keep = old[i] ?? old[0];
-    return { key: p.key, photo: keep.photo, scale: keep.scale, ox: 0, oy: 0 };
-  });
-  next.selected = 0;
-  return next;
-}
-
-/** A bounded undo/redo history over JSON snapshots. */
-export function createHistory(limit = 50) {
+// Undo/redo history: every committed change pushes the previous state.
+export function createHistory(initial) {
   const past = [];
   const future = [];
+  let current = snapshot(initial);
   return {
-    push(state) {
-      past.push(JSON.stringify(state));
-      if (past.length > limit) past.shift();
+    get() {
+      return current;
+    },
+    commit(next) {
+      past.push(current);
+      if (past.length > 60) past.shift();
       future.length = 0;
+      current = snapshot(next);
     },
-    undo(state) {
-      if (past.length === 0) return null;
-      future.push(JSON.stringify(state));
-      return JSON.parse(past.pop());
+    undo() {
+      if (past.length === 0) return false;
+      future.push(current);
+      current = past.pop();
+      return true;
     },
-    redo(state) {
-      if (future.length === 0) return null;
-      past.push(JSON.stringify(state));
-      return JSON.parse(future.pop());
+    redo() {
+      if (future.length === 0) return false;
+      past.push(current);
+      current = future.pop();
+      return true;
     },
     canUndo() {
       return past.length > 0;
@@ -85,4 +68,15 @@ export function createHistory(limit = 50) {
       return future.length > 0;
     },
   };
+}
+
+// Resize the panel list when the layout changes, keeping the photos that fit.
+export function panelsForLayout(state) {
+  const count = PANEL_COUNT[state.layout];
+  const panels = state.panels.slice(0, count);
+  while (panels.length < count) {
+    const photo = SAMPLE_PHOTOS[panels.length % SAMPLE_PHOTOS.length];
+    panels.push(blankPanel(photo));
+  }
+  return panels;
 }

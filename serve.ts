@@ -1,24 +1,18 @@
-// Vice Panel Studio dev server: serves app/ on http://localhost:8080.
-// Node 22 standard library only. Run from the repository root:
-//
-//   node serve.ts
-//
-// Serves only files under app/, with a small content-type table. No network
-// requests are made by the app itself; this server is only for trying it
-// locally in a desktop browser.
-
+// Tiny static server for trying the app locally: serves app/ at http://localhost:8080.
+// Standard library only; run with `node serve.ts` from the repository root.
 import { createServer } from 'node:http';
-import { readFileSync, statSync } from 'node:fs';
-import { extname, join, normalize } from 'node:path';
+import { createReadStream, existsSync, statSync } from 'node:fs';
+import { extname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const PORT = 8080;
-const APP_DIR = join(process.cwd(), 'app');
+const ROOT = resolve(join(fileURLToPath(import.meta.url), '..', 'app'));
+const PORT = Number(process.env.PORT ?? 8080);
 
-const CONTENT_TYPES: Record<string, string> = {
+const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -28,28 +22,19 @@ const CONTENT_TYPES: Record<string, string> = {
 };
 
 const server = createServer((req, res) => {
-  const url = new URL(req.url ?? '/', 'http://localhost');
-  let path = url.pathname === '/' ? '/index.html' : url.pathname;
-  const file = join(APP_DIR, normalize(path).replace(/^(\.\.[/\\])+/, ''));
-  if (!file.startsWith(APP_DIR)) {
-    res.writeHead(403, { 'content-type': 'text/plain' });
-    res.end('forbidden');
+  const path = decodeURIComponent(req.url?.split('?')[0] ?? '/');
+  const file = join(ROOT, path === '/' ? 'index.html' : path);
+  if (!file.startsWith(ROOT) || !existsSync(file) || !statSync(file).isFile()) {
+    res.writeHead(404, { 'content-type': 'text/plain' });
+    res.end('not found\n');
     return;
   }
-  try {
-    if (!statSync(file).isFile()) throw new Error('not a file');
-    const body = readFileSync(file);
-    res.writeHead(200, {
-      'content-type': CONTENT_TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream',
-      'content-length': body.length,
-    });
-    res.end(body);
-  } catch {
-    res.writeHead(404, { 'content-type': 'text/plain' });
-    res.end('not found');
-  }
+  res.writeHead(200, {
+    'content-type': MIME[extname(file)] ?? 'application/octet-stream',
+  });
+  createReadStream(file).pipe(res);
 });
 
 server.listen(PORT, () => {
-  console.log(`Vice Panel Studio at http://localhost:${PORT}/`);
+  console.log(`Vice Panel Studio at http://localhost:${PORT}`);
 });

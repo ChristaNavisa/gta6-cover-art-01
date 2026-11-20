@@ -1,9 +1,8 @@
-/* Vice Panel Studio — dark neon editor theme. Fonts are vendored under app/fonts/. */
-
 @font-face {
   font-family: 'Anton';
   src: url('fonts/Anton-Regular.ttf') format('truetype');
   font-weight: 400;
+  font-style: normal;
   font-display: swap;
 }
 
@@ -11,6 +10,7 @@
   font-family: 'Bebas Neue';
   src: url('fonts/BebasNeue-Regular.ttf') format('truetype');
   font-weight: 400;
+  font-style: normal;
   font-display: swap;
 }
 
@@ -18,20 +18,20 @@
   font-family: 'Pacifico';
   src: url('fonts/Pacifico-Regular.ttf') format('truetype');
   font-weight: 400;
+  font-style: normal;
   font-display: swap;
 }
 
 :root {
-  --bg: #0d0a14;
-  --panel: #171226;
-  --panel-2: #1f1832;
-  --line: #3a2d5c;
-  --text: #f4eefc;
-  --muted: #b3a6cf;
-  --accent: #ff7e3d;
-  --accent-2: #ff2d78;
-  --gold: #ffd76a;
-  --radius: 10px;
+  --bg: #0b0620;
+  --panel: #171233;
+  --panel-2: #1e1845;
+  --ink: #f5f0ff;
+  --muted: #b9b3d9;
+  --accent: #ff2d78;
+  --accent-2: #ff7a1a;
+  --gold: #ffd166;
+  --line: #2c2560;
 }
 
 * { box-sizing: border-box; }
@@ -39,9 +39,10 @@
 body {
   margin: 0;
   background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  min-height: 100vh;
+  color: var(--ink);
+  font-family: 'Bebas Neue', 'Arial Narrow', sans-serif;
+  font-size: 17px;
+  letter-spacing: 0.04em;
 }
 
 .topbar {
@@ -50,174 +51,152 @@ body {
   justify-content: space-between;
   gap: 16px;
   padding: 14px 20px;
-  background: linear-gradient(90deg, #2a1140, #571b4d 55%, #8a2a1d);
-  border-bottom: 2px solid var(--line);
+  background: linear-gradient(90deg, #1a0b2e, #3d0a4d 55%, #7a1030);
+  border-bottom: 3px solid var(--accent);
 }
 
 .brand h1 {
   margin: 0;
-  font-family: 'Anton', 'Bebas Neue', sans-serif;
-  font-weight: 400;
-  font-size: 30px;
-  letter-spacing: 2px;
+  font-family: 'Anton', sans-serif;
+  font-size: 34px;
+  letter-spacing: 0.06em;
   color: #fff;
-  text-shadow: 0 2px 0 #ff2d78, 0 4px 12px rgba(0, 0, 0, 0.6);
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.45);
 }
 
 .brand p {
   margin: 2px 0 0;
-  color: #ffd9ec;
-  font-size: 13px;
+  color: var(--gold);
+  font-family: 'Pacifico', cursive;
+  font-size: 16px;
+  letter-spacing: 0;
 }
 
 .top-actions { display: flex; gap: 8px; }
 
-.editor {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 18px;
-  padding: 18px 20px;
-  max-width: 1440px;
-  margin: 0 auto;
-}
-
-.stage { min-width: 0; }
-
-#cover {
-  display: block;
-  width: 100%;
-  max-width: 720px;
-  height: auto;
-  margin: 0 auto;
-  background: #000;
-  border: 2px solid var(--line);
-  border-radius: var(--radius);
-  cursor: grab;
-  touch-action: none;
-}
-
-#cover:active { cursor: grabbing; }
-
-.stage-hint {
-  max-width: 720px;
-  margin: 10px auto 0;
-  color: var(--muted);
-  font-size: 13px;
-  text-align: center;
-}
-
-.controls { display: flex; flex-direction: column; gap: 14px; }
-
-.group {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 14px;
-}
-
-.group h2 {
-  margin: 0 0 10px;
-  font-family: 'Bebas Neue', 'Anton', sans-serif;
-  font-weight: 400;
-  font-size: 22px;
-  letter-spacing: 2px;
-  color: var(--gold);
-}
-
-.row { display: flex; flex-wrap: wrap; gap: 8px; }
-
 button {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  color: var(--ink);
   background: var(--panel-2);
-  color: var(--text);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 8px 12px;
-  font: inherit;
-  font-size: 14px;
+  padding: 8px 14px;
   cursor: pointer;
 }
 
 button:hover { border-color: var(--accent); }
+button:disabled { opacity: 0.4; cursor: default; }
+button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.primary { background: var(--accent-2); border-color: var(--accent-2); color: #fff; width: 100%; }
 
-button.active {
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  border-color: transparent;
-  color: #fff;
-  font-weight: 600;
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 12px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
 }
 
-button.primary {
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  border-color: transparent;
-  color: #fff;
-  font-weight: 700;
+.group { display: flex; align-items: center; gap: 8px; }
+.group-label { color: var(--muted); font-size: 15px; }
+
+.workspace {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  align-items: flex-start;
 }
 
-button:disabled { opacity: 0.45; cursor: default; }
+.stage { flex: 1; min-width: 0; text-align: center; }
 
-label { display: block; margin: 8px 0; font-size: 13px; color: var(--muted); }
+#preview {
+  max-width: 100%;
+  height: auto;
+  background: #000;
+  border: 3px solid var(--line);
+  border-radius: 6px;
+  cursor: grab;
+  touch-action: none;
+}
 
-input[type="text"] {
+#preview:active { cursor: grabbing; }
+
+.hint { color: var(--muted); font-size: 15px; margin: 10px 0 0; }
+
+.sidebar { width: 320px; flex: none; display: flex; flex-direction: column; gap: 14px; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.card h2 {
+  margin: 0 0 10px;
+  font-family: 'Anton', sans-serif;
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  color: var(--gold);
+}
+
+.card label { display: block; margin: 10px 0; color: var(--muted); }
+
+.card input[type="text"] {
   display: block;
   width: 100%;
   margin-top: 4px;
-  padding: 8px 10px;
-  background: #0d0a14;
-  color: var(--text);
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 16px;
+  font-family: inherit;
+}
+
+.card input[type="range"] { width: 100%; }
+
+.panel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  font: inherit;
+  margin-bottom: 8px;
+  cursor: pointer;
 }
 
-input[type="range"] { width: 100%; accent-color: var(--accent-2); }
+.panel-row.selected { border-color: var(--gold); background: var(--panel-2); }
 
-.slider-label { margin-top: 12px; }
+.panel-row span { flex: 1; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.stars { display: flex; align-items: center; gap: 4px; margin-top: 10px; }
+.panel-row button { padding: 5px 9px; font-size: 14px; }
 
-.stars span { color: var(--muted); font-size: 13px; margin-right: 4px; }
+.note { color: var(--muted); font-size: 14px; }
 
-.stars button {
-  background: none;
-  border: none;
-  padding: 2px 4px;
-  font-size: 24px;
-  line-height: 1;
-  color: #5a4a7d;
+#selftest {
+  position: fixed;
+  left: 8px;
+  bottom: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #7dff9a;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  z-index: 10;
 }
 
-.stars button.lit { color: var(--gold); text-shadow: 0 0 10px rgba(255, 215, 106, 0.7); }
-
-.note { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
-
-.foot {
-  padding: 16px 20px 24px;
-  color: var(--muted);
-  font-size: 12.5px;
-  text-align: center;
-}
-
-/* Shot mode: the cover alone, full window, for screenshots. */
+/* Shot mode: the cover alone, full frame, no editor chrome. */
 body.shot { background: #000; }
-
 body.shot .topbar,
-body.shot .controls,
-body.shot .stage-hint,
-body.shot .foot { display: none; }
-
-body.shot .editor { display: block; padding: 0; margin: 0; max-width: none; }
-
-body.shot .stage { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-
-body.shot #cover {
-  width: auto;
-  height: auto;
-  max-width: 100vw;
-  max-height: 100vh;
-  border: none;
-  border-radius: 0;
-}
-
-@media (max-width: 900px) {
-  .editor { grid-template-columns: 1fr; }
-}
+body.shot .toolbar,
+body.shot .sidebar,
+body.shot .hint { display: none; }
+body.shot .workspace { padding: 0; display: block; }
+body.shot .stage { text-align: left; }
+body.shot #preview { border: none; border-radius: 0; display: block; }
