@@ -1,84 +1,93 @@
-// State for Vice Panel Studio: the cover's data plus undo/redo.
+// Vice Panel Studio — cover state and history.
 //
-// A panel points at a photo by index into the loaded images and holds its
-// crop: x/y are the crop centre (0..1, 0.5 is centred) and zoom the scale
-// over the cover fit. The active panel is the one the editor drags.
-export const LAYOUT_IDS = ['vice-grid', 'sunset-strip', 'neon-trio'];
-export const GRADE_IDS = ['vice-sunset', 'neon-nights', 'bubblegum', 'mono-gold'];
+// One plain object describes a whole cover: its caption, its layout, its
+// grade, its post size, its cast role tags, its callouts and seal, and one
+// slot per panel (photo, zoom and focal point). Every edit goes through the
+// History stack, so undo and redo always work.
 
-export const SIZES = [
-  { id: 'square', label: '1080 × 1080', w: 1080, h: 1080 },
-  { id: 'portrait', label: '1080 × 1350', w: 1080, h: 1350 },
-  { id: 'story', label: '1920 × 1080', w: 1920, h: 1080 },
+/** The sample photos the app ships (people-first: both are people shots). */
+export const PHOTOS = [
+  { id: 'boulevard', src: 'samples/boulevard.jpg', label: 'Boulevard', people: true },
+  { id: 'pier', src: 'samples/pier.jpg', label: 'Pier', people: true },
 ];
 
-export const PHOTOS = ['samples/boulevard.jpg', 'samples/pier.jpg'];
+/** The post sizes a cover exports to. */
+export const SIZES = [
+  { id: '1080x1080', w: 1080, h: 1080, label: 'Square · 1080 × 1080' },
+  { id: '1080x1350', w: 1080, h: 1350, label: 'Portrait · 1080 × 1350' },
+  { id: '1920x1080', w: 1920, h: 1080, label: 'Wide · 1920 × 1080' },
+];
 
-export function sizeOf(id) {
+export function sizeById(id) {
   return SIZES.find((s) => s.id === id) ?? SIZES[0];
 }
 
+export function photoById(id) {
+  return PHOTOS.find((p) => p.id === id) ?? null;
+}
+
+/** The cover a first-time visitor sees: seven-panel pop-out, neon grade. */
 export function defaultState() {
   return {
-    caption: 'NEON SHORE',
-    subcaption: 'Vice City Nights',
-    layout: 'vice-grid',
-    grade: 'vice-sunset',
-    size: 'square',
-    stars: 5,
-    grain: true,
-    vignette: true,
-    panels: [
-      { photo: 0, x: 0.5, y: 0.45, zoom: 1.15 },
-      { photo: 1, x: 0.5, y: 0.5, zoom: 1.1 },
-      { photo: 0, x: 0.5, y: 0.55, zoom: 1.2 },
-      { photo: 1, x: 0.5, y: 0.45, zoom: 1.05 },
-      { photo: 0, x: 0.5, y: 0.5, zoom: 1.1 },
+    title: 'NEON SHORE',
+    subtitle: 'VICE CITY · EST. 2026',
+    caption: 'A Vice City story, told in seven panels.',
+    layout: 'popout-seven',
+    grade: 'neon-sunset',
+    size: '1080x1080',
+    heat: 5,
+    seal: true,
+    peopleFirst: true,
+    callouts: ['WANTED ★★★★★', 'VICE CITY'],
+    cast: [
+      { name: 'LUCIA', role: 'DRIVER' },
+      { name: 'JASON', role: 'GETAWAY' },
+      { name: 'VICE CITY', role: 'SETTING' },
     ],
-    activePanel: 0,
+    panels: [
+      { photo: 'boulevard', zoom: 1.18, x: 0.5, y: 0.4 },
+      { photo: 'pier', zoom: 1.12, x: 0.5, y: 0.48 },
+      { photo: 'boulevard', zoom: 1.35, x: 0.62, y: 0.38 },
+      { photo: 'pier', zoom: 1.25, x: 0.38, y: 0.45 },
+      { photo: 'boulevard', zoom: 1.2, x: 0.5, y: 0.55 },
+      { photo: 'pier', zoom: 1.3, x: 0.55, y: 0.42 },
+      { photo: 'boulevard', zoom: 1.15, x: 0.45, y: 0.5 },
+    ],
   };
 }
 
-export function snapshot(state) {
-  return JSON.stringify(state);
+export function cloneState(state) {
+  return JSON.parse(JSON.stringify(state));
 }
 
-export function restore(text) {
-  const parsed = JSON.parse(text);
-  if (!parsed || typeof parsed !== 'object') throw new Error('bad snapshot');
-  return parsed;
-}
-
-/** A capped undo/redo stack of state snapshots. */
+/** Undo/redo over whole cover states. */
 export class History {
-  constructor(limit = 50) {
+  constructor(state) {
     this.past = [];
     this.future = [];
-    this.limit = limit;
+    this.current = cloneState(state);
   }
-
-  push(text) {
-    this.past.push(text);
-    if (this.past.length > this.limit) this.past.shift();
-    this.future.length = 0;
+  push(state) {
+    this.past.push(this.current);
+    if (this.past.length > 60) this.past.shift();
+    this.future = [];
+    this.current = cloneState(state);
   }
-
-  undo(current) {
+  undo() {
     if (this.past.length === 0) return null;
-    this.future.push(current);
-    return this.past.pop();
+    this.future.push(this.current);
+    this.current = this.past.pop();
+    return cloneState(this.current);
   }
-
-  redo(current) {
+  redo() {
     if (this.future.length === 0) return null;
-    this.past.push(current);
-    return this.future.pop();
+    this.past.push(this.current);
+    this.current = this.future.pop();
+    return cloneState(this.current);
   }
-
   canUndo() {
     return this.past.length > 0;
   }
-
   canRedo() {
     return this.future.length > 0;
   }

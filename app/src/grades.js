@@ -1,60 +1,73 @@
-// Grades for Vice Panel Studio: each grade is a gradient wash laid over the
-// panels plus the lettering colours it pairs with. The wash is drawn with
-// the named composite mode so the photos keep their detail; mono-gold also
-// desaturates the panels themselves (see render.js).
-export const GRADES = {
-  'vice-sunset': {
-    label: 'Vice Sunset',
-    wash: [
-      [0, 'rgba(255,126,95,0.22)'],
-      [0.55, 'rgba(255,126,95,0.05)'],
-      [1, 'rgba(43,16,85,0.30)'],
-    ],
-    blend: 'soft-light',
-    caption: '#fff7e0',
-    accent: '#ffd194',
-    star: '#ffc93c',
-  },
-  'neon-nights': {
-    label: 'Neon Nights',
-    wash: [
-      [0, 'rgba(255,0,128,0.24)'],
-      [0.5, 'rgba(0,229,255,0.10)'],
-      [1, 'rgba(20,0,40,0.34)'],
-    ],
-    blend: 'overlay',
-    caption: '#ffffff',
-    accent: '#ff5da2',
-    star: '#ffe14d',
-  },
-  bubblegum: {
-    label: 'Bubblegum',
-    wash: [
-      [0, 'rgba(255,105,180,0.22)'],
-      [1, 'rgba(147,112,219,0.26)'],
-    ],
-    blend: 'soft-light',
-    caption: '#fff0f6',
-    accent: '#ff8fc7',
-    star: '#ffd6ec',
-  },
-  'mono-gold': {
-    label: 'Mono Gold',
-    wash: [
-      [0, 'rgba(60,50,35,0.30)'],
-      [1, 'rgba(20,16,10,0.38)'],
-    ],
-    blend: 'soft-light',
-    caption: '#f5d76e',
-    accent: '#d4af37',
-    star: '#f5d76e',
-  },
-};
+// Vice Panel Studio — colour grades.
+//
+// A grade is the whole look of a cover: the tint washed over every panel,
+// the chrome the title is lettered in, the neon of the subtitle, the gold of
+// the rule and the stars, and how hard the grain and vignette bite. Four
+// grades, each a different Vice City hour.
 
-export function gradeOf(id) {
-  return GRADES[id] ?? GRADES['vice-sunset'];
-}
+export const GRADES = [
+  {
+    id: 'neon-sunset',
+    name: 'Neon Sunset',
+    blurb: 'Pink hour over the bay — hot magenta into orange.',
+    tintTop: '#ff2e88',
+    tintBottom: '#ff9a3d',
+    tintAlpha: 0.24,
+    titleStops: ['#ffffff', '#ffd166', '#ff2e88', '#7b2ff7'],
+    subtitle: '#39e6ff',
+    rule: '#ffd166',
+    star: '#ffd166',
+    chip: '#ff2e88',
+    vignette: 0.34,
+    grain: 0.05,
+  },
+  {
+    id: 'vice-gold',
+    name: 'Vice Gold',
+    blurb: 'Late gold light — amber, brass and warm cream.',
+    tintTop: '#ffb703',
+    tintBottom: '#fb8500',
+    tintAlpha: 0.2,
+    titleStops: ['#fff8e1', '#ffd166', '#ffb703', '#b45309'],
+    subtitle: '#ffe8a3',
+    rule: '#ffb703',
+    star: '#ffd166',
+    chip: '#b45309',
+    vignette: 0.3,
+    grain: 0.04,
+  },
+  {
+    id: 'palm-teal',
+    name: 'Palm Teal',
+    blurb: 'After dark on the water — teal, cyan and deep blue.',
+    tintTop: '#06d6a0',
+    tintBottom: '#118ab2',
+    tintAlpha: 0.24,
+    titleStops: ['#e0fbfc', '#98f5e1', '#06d6a0', '#073b4c'],
+    subtitle: '#90e0ef',
+    rule: '#06d6a0',
+    star: '#ffd166',
+    chip: '#118ab2',
+    vignette: 0.38,
+    grain: 0.05,
+  },
+  {
+    id: 'retro-chrome',
+    name: 'Retro Chrome',
+    blurb: 'Chrome and bubblegum — silver, pink and mirror shine.',
+    tintTop: '#c0c0c8',
+    tintBottom: '#ff70a6',
+    tintAlpha: 0.18,
+    titleStops: ['#ffffff', '#e8e8ef', '#ff70a6', '#8d99ae'],
+    subtitle: '#ff8fab',
+    rule: '#e8e8ef',
+    star: '#ffd166',
+    chip: '#8d99ae',
+    vignette: 0.28,
+    grain: 0.06,
+  },
+];
 
-export function gradeLabel(id) {
-  return gradeOf(id).label;
+export function gradeById(id) {
+  return GRADES.find((g) => g.id === id) ?? GRADES[0];
 }

@@ -3,57 +3,91 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vice Panel Studio — GTA 6 Cover Art</title>
-<link rel="stylesheet" href="./style.css">
+<title>Vice Panel Studio — GTA 6-style cover art maker</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="top">
+<header class="topbar">
   <div class="brand">
-    <h1>VICE PANEL STUDIO</h1>
-    <p>Turn a photo and a caption into GTA 6-style cover art.</p>
-  </div>
-  <div class="heat" id="heat" title="Heat meter"></div>
-</header>
-<main id="editor">
-  <section class="stage">
-    <canvas id="preview" width="1080" height="1080"></canvas>
-    <p class="hint">Drag a panel to pan it · click a panel to select it · scroll to zoom</p>
-    <div id="selftest" aria-live="polite"></div>
-  </section>
-  <aside class="controls">
-    <label class="field">Caption
-      <input id="caption" type="text" value="NEON SHORE" maxlength="24" autocomplete="off">
-    </label>
-    <label class="field">Accent line
-      <input id="subcaption" type="text" value="Vice City Nights" maxlength="40" autocomplete="off">
-    </label>
-    <fieldset class="field"><legend>Layout</legend>
-      <div class="seg" id="layouts"></div>
-    </fieldset>
-    <fieldset class="field"><legend>Grade</legend>
-      <div class="seg" id="grades"></div>
-    </fieldset>
-    <fieldset class="field"><legend>Post size</legend>
-      <div class="seg" id="sizes"></div>
-    </fieldset>
-    <fieldset class="field"><legend>Heat</legend>
-      <div class="stars" id="stars"></div>
-    </fieldset>
-    <fieldset class="field"><legend>Panels</legend>
-      <div id="panels"></div>
-      <label class="upload">+ Add your photo
-        <input id="upload" type="file" accept="image/*" hidden>
-      </label>
-    </fieldset>
-    <label class="check"><input id="grain" type="checkbox" checked> Film grain</label>
-    <label class="check"><input id="vignette" type="checkbox" checked> Vignette</label>
-    <div class="row">
-      <button id="undo" type="button">Undo</button>
-      <button id="redo" type="button">Redo</button>
-      <button id="export" type="button" class="primary">Export PNG</button>
+    <span class="brand-mark">★</span>
+    <div>
+      <h1>Vice Panel Studio</h1>
+      <p>Turn any photo and caption into GTA 6-style cover art — offline, in your browser.</p>
     </div>
+  </div>
+  <div class="top-actions">
+    <button id="undoBtn" type="button" title="Undo">↩ Undo</button>
+    <button id="redoBtn" type="button" title="Redo">↪ Redo</button>
+    <button id="exportAll" type="button" class="primary">Export all 3 sizes</button>
+  </div>
+</header>
+
+<main class="studio">
+  <section class="preview-col">
+    <div class="stage-wrap">
+      <canvas id="stage" width="560" height="560" aria-label="Cover preview"></canvas>
+      <canvas id="shotCanvas" width="1080" height="1080" hidden aria-label="Cover shot"></canvas>
+    </div>
+    <p id="panelLabel" class="panel-label">Panel 1 of 7</p>
+    <div class="panel-tools">
+      <button id="zoomOut" type="button">− Zoom</button>
+      <button id="zoomIn" type="button">+ Zoom</button>
+      <button id="uploadBtn" type="button">Upload photo for this panel</button>
+      <button id="peopleBtn" type="button">Fill with people photos</button>
+      <input id="fileInput" type="file" accept="image/*" hidden>
+    </div>
+    <p class="hint">Click a panel to select it. Drag to move the photo, scroll to zoom. Photos never leave your machine.</p>
+    <p id="selftestNote" class="selftest"></p>
+  </section>
+
+  <aside class="controls">
+    <section>
+      <h2>Layout</h2>
+      <div id="layoutChips" class="chips"></div>
+    </section>
+    <section>
+      <h2>Grade</h2>
+      <div id="gradeChips" class="chips"></div>
+    </section>
+    <section>
+      <h2>Post size</h2>
+      <div id="sizeChips" class="chips"></div>
+    </section>
+    <section>
+      <h2>Caption</h2>
+      <label>Title <input id="titleInput" type="text" maxlength="24" value="NEON SHORE"></label>
+      <label>Subtitle <input id="subtitleInput" type="text" maxlength="40" value="VICE CITY · EST. 2026"></label>
+      <label>Caption line <input id="captionInput" type="text" maxlength="80" value="A Vice City story, told in seven panels."></label>
+    </section>
+    <section>
+      <h2>Cast role tags</h2>
+      <div id="castEditor"></div>
+      <p class="hint">Name + role per tag, up to four. They print as pills on the cover.</p>
+    </section>
+    <section>
+      <h2>Callouts &amp; seal</h2>
+      <div id="calloutList" class="checks"></div>
+      <label class="check"><input id="sealToggle" type="checkbox" checked> Seal stamp on the cover</label>
+      <label class="check"><input id="peopleToggle" type="checkbox" checked> People-first photo flow (crop to faces)</label>
+    </section>
+    <section>
+      <h2>Heat</h2>
+      <div id="heatStars" class="heat">
+        <button type="button" aria-label="1 star">★</button><button type="button" aria-label="2 stars">★</button><button type="button" aria-label="3 stars">★</button><button type="button" aria-label="4 stars">★</button><button type="button" aria-label="5 stars">★</button>
+      </div>
+    </section>
+    <section>
+      <h2>Export PNG</h2>
+      <div id="exportSizes" class="export-list"></div>
+      <p id="exportNote" class="hint"></p>
+    </section>
   </aside>
 </main>
-<script type="module" src="./src/app.js"></script>
+
+<footer class="foot">
+  <p>Vice Panel Studio — your photos stay on your machine. Fonts: Bungee, Monoton and Racing Sans One under the SIL Open Font License. Not affiliated with Rockstar Games.</p>
+</footer>
+
+<script type="module" src="src/app.js"></script>
 </body>
 </html>
