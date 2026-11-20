@@ -3,82 +3,57 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vice Panel Studio — GTA 6-style cover art maker</title>
-<link rel="stylesheet" href="style.css">
+<title>Vice Panel Studio — GTA 6 Cover Art</title>
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
-<header class="topbar">
+<header class="top">
   <div class="brand">
     <h1>VICE PANEL STUDIO</h1>
-    <p>Turn any photo into GTA 6-style cover art — offline, in your browser.</p>
+    <p>Turn a photo and a caption into GTA 6-style cover art.</p>
   </div>
-  <div class="top-actions">
-    <button id="undoBtn" type="button" title="Undo (Ctrl+Z)">↩ Undo</button>
-    <button id="redoBtn" type="button" title="Redo (Ctrl+Shift+Z)">↪ Redo</button>
-  </div>
+  <div class="heat" id="heat" title="Heat meter"></div>
 </header>
-
-<section class="toolbar" aria-label="Layout, grade and size">
-  <div class="group">
-    <span class="group-label">Layout</span>
-    <button type="button" data-layout="vice-grid" class="active">Vice Grid · 5</button>
-    <button type="button" data-layout="sunset-strip">Sunset Strip · 4</button>
-    <button type="button" data-layout="neon-trio">Neon Trio · 3</button>
-  </div>
-  <div class="group">
-    <span class="group-label">Grade</span>
-    <button type="button" data-grade="vice-sunset" class="active">Vice Sunset</button>
-    <button type="button" data-grade="neon-nights">Neon Nights</button>
-    <button type="button" data-grade="palm-noir">Palm Noir</button>
-    <button type="button" data-grade="bubblegum">Bubblegum</button>
-  </div>
-  <div class="group">
-    <span class="group-label">Post size</span>
-    <button type="button" data-size="square" class="active">1080 × 1080</button>
-    <button type="button" data-size="portrait">1080 × 1350</button>
-    <button type="button" data-size="wide">1920 × 1080</button>
-  </div>
-</section>
-
-<main class="workspace">
-  <div class="stage">
-    <canvas id="preview" width="720" height="720"></canvas>
-    <p class="hint">Drag a photo to pan it · scroll to zoom · click a panel row to select it</p>
-  </div>
-
-  <aside class="sidebar">
-    <section class="card">
-      <h2>Caption</h2>
-      <label>Title
-        <input id="titleInput" type="text" value="NEON SHORE" maxlength="24">
+<main id="editor">
+  <section class="stage">
+    <canvas id="preview" width="1080" height="1080"></canvas>
+    <p class="hint">Drag a panel to pan it · click a panel to select it · scroll to zoom</p>
+    <div id="selftest" aria-live="polite"></div>
+  </section>
+  <aside class="controls">
+    <label class="field">Caption
+      <input id="caption" type="text" value="NEON SHORE" maxlength="24" autocomplete="off">
+    </label>
+    <label class="field">Accent line
+      <input id="subcaption" type="text" value="Vice City Nights" maxlength="40" autocomplete="off">
+    </label>
+    <fieldset class="field"><legend>Layout</legend>
+      <div class="seg" id="layouts"></div>
+    </fieldset>
+    <fieldset class="field"><legend>Grade</legend>
+      <div class="seg" id="grades"></div>
+    </fieldset>
+    <fieldset class="field"><legend>Post size</legend>
+      <div class="seg" id="sizes"></div>
+    </fieldset>
+    <fieldset class="field"><legend>Heat</legend>
+      <div class="stars" id="stars"></div>
+    </fieldset>
+    <fieldset class="field"><legend>Panels</legend>
+      <div id="panels"></div>
+      <label class="upload">+ Add your photo
+        <input id="upload" type="file" accept="image/*" hidden>
       </label>
-      <label>Subtitle
-        <input id="subtitleInput" type="text" value="golden hour in the city" maxlength="48">
-      </label>
-      <label>Heat meter
-        <input id="starsInput" type="range" min="0" max="5" step="1" value="3">
-        <span id="starsValue">3 / 5</span>
-      </label>
-    </section>
-
-    <section class="card">
-      <h2>Photos</h2>
-      <div id="panelList"></div>
-      <label>Zoom selected panel
-        <input id="zoomInput" type="range" min="50" max="300" step="5" value="100">
-      </label>
-      <button id="fillAllBtn" type="button">Fill all panels with the selected photo</button>
-    </section>
-
-    <section class="card">
-      <h2>Export</h2>
-      <button id="exportBtn" type="button" class="primary">Export PNG at the chosen size</button>
-      <button id="exportAllBtn" type="button">Export all 3 sizes</button>
-      <p class="note">PNGs download straight from your browser. Photos never leave this machine.</p>
-    </section>
+    </fieldset>
+    <label class="check"><input id="grain" type="checkbox" checked> Film grain</label>
+    <label class="check"><input id="vignette" type="checkbox" checked> Vignette</label>
+    <div class="row">
+      <button id="undo" type="button">Undo</button>
+      <button id="redo" type="button">Redo</button>
+      <button id="export" type="button" class="primary">Export PNG</button>
+    </div>
   </aside>
 </main>
-
-<script type="module" src="src/app.js"></script>
+<script type="module" src="./src/app.js"></script>
 </body>
 </html>

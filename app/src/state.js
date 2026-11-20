@@ -1,82 +1,85 @@
-// Vice Panel Studio — the cover state and its undo/redo history.
-// A cover is a layout, a grade, a caption, a heat-meter rating and one photo
-// slot per panel, each with its own crop (zoom + pan offsets).
-export const LAYOUTS = ['vice-grid', 'sunset-strip', 'neon-trio'];
-export const GRADES = ['vice-sunset', 'neon-nights', 'palm-noir', 'bubblegum'];
-export const PANEL_COUNT = { 'vice-grid': 5, 'sunset-strip': 4, 'neon-trio': 3 };
-export const SAMPLE_PHOTOS = ['samples/boulevard.jpg', 'samples/pier.jpg'];
+// State for Vice Panel Studio: the cover's data plus undo/redo.
+//
+// A panel points at a photo by index into the loaded images and holds its
+// crop: x/y are the crop centre (0..1, 0.5 is centred) and zoom the scale
+// over the cover fit. The active panel is the one the editor drags.
+export const LAYOUT_IDS = ['vice-grid', 'sunset-strip', 'neon-trio'];
+export const GRADE_IDS = ['vice-sunset', 'neon-nights', 'bubblegum', 'mono-gold'];
 
-// One panel's photo: a source (a sample path or an object URL from a file
-// the user loaded) plus the crop that positions it inside the panel.
-export function blankPanel(photo) {
-  return { photo: photo ?? null, scale: 1, ox: 0, oy: 0 };
+export const SIZES = [
+  { id: 'square', label: '1080 × 1080', w: 1080, h: 1080 },
+  { id: 'portrait', label: '1080 × 1350', w: 1080, h: 1350 },
+  { id: 'story', label: '1920 × 1080', w: 1920, h: 1080 },
+];
+
+export const PHOTOS = ['samples/boulevard.jpg', 'samples/pier.jpg'];
+
+export function sizeOf(id) {
+  return SIZES.find((s) => s.id === id) ?? SIZES[0];
 }
 
-export function blankState() {
+export function defaultState() {
   return {
+    caption: 'NEON SHORE',
+    subcaption: 'Vice City Nights',
     layout: 'vice-grid',
     grade: 'vice-sunset',
-    title: 'NEON SHORE',
-    subtitle: 'golden hour in the city',
-    stars: 3,
+    size: 'square',
+    stars: 5,
+    grain: true,
+    vignette: true,
     panels: [
-      blankPanel('samples/boulevard.jpg'),
-      blankPanel('samples/pier.jpg'),
-      blankPanel('samples/boulevard.jpg'),
-      blankPanel('samples/pier.jpg'),
-      blankPanel('samples/boulevard.jpg'),
+      { photo: 0, x: 0.5, y: 0.45, zoom: 1.15 },
+      { photo: 1, x: 0.5, y: 0.5, zoom: 1.1 },
+      { photo: 0, x: 0.5, y: 0.55, zoom: 1.2 },
+      { photo: 1, x: 0.5, y: 0.45, zoom: 1.05 },
+      { photo: 0, x: 0.5, y: 0.5, zoom: 1.1 },
     ],
+    activePanel: 0,
   };
 }
 
-// A deep copy of a state, for the history stack.
 export function snapshot(state) {
-  return JSON.parse(JSON.stringify(state));
+  return JSON.stringify(state);
 }
 
-// Undo/redo history: every committed change pushes the previous state.
-export function createHistory(initial) {
-  const past = [];
-  const future = [];
-  let current = snapshot(initial);
-  return {
-    get() {
-      return current;
-    },
-    commit(next) {
-      past.push(current);
-      if (past.length > 60) past.shift();
-      future.length = 0;
-      current = snapshot(next);
-    },
-    undo() {
-      if (past.length === 0) return false;
-      future.push(current);
-      current = past.pop();
-      return true;
-    },
-    redo() {
-      if (future.length === 0) return false;
-      past.push(current);
-      current = future.pop();
-      return true;
-    },
-    canUndo() {
-      return past.length > 0;
-    },
-    canRedo() {
-      return future.length > 0;
-    },
-  };
+export function restore(text) {
+  const parsed = JSON.parse(text);
+  if (!parsed || typeof parsed !== 'object') throw new Error('bad snapshot');
+  return parsed;
 }
 
-// Resize the panel list when the layout changes, keeping the photos that fit.
-export function panelsForLayout(state) {
-  const count = PANEL_COUNT[state.layout];
-  const panels = state.panels.slice(0, count);
-  while (panels.length < count) {
-    const photo = SAMPLE_PHOTOS[panels.length % SAMPLE_PHOTOS.length];
-    panels.push(blankPanel(photo));
+/** A capped undo/redo stack of state snapshots. */
+export class History {
+  constructor(limit = 50) {
+    this.past = [];
+    this.future = [];
+    this.limit = limit;
   }
-  return panels;
+
+  push(text) {
+    this.past.push(text);
+    if (this.past.length > this.limit) this.past.shift();
+    this.future.length = 0;
+  }
+
+  undo(current) {
+    if (this.past.length === 0) return null;
+    this.future.push(current);
+    return this.past.pop();
+  }
+
+  redo(current) {
+    if (this.future.length === 0) return null;
+    this.past.push(current);
+    return this.future.pop();
+  }
+
+  canUndo() {
+    return this.past.length > 0;
+  }
+
+  canRedo() {
+    return this.future.length > 0;
+  }
 }

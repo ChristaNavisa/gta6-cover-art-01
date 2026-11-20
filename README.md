@@ -1,54 +1,49 @@
-# Vice Panel Studio
-
 [![make.fun · gta6-cover-art-01](https://make.fun/badge/gta6-cover-art-01.svg)](https://make.fun/bounty/gta6-cover-art-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01)
 [![rank](https://make.fun/badge/gta6-cover-art-01/ChristaNavisa/gta6-cover-art-01/rank.svg)](https://make.fun/bounty/gta6-cover-art-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01)
 [![reward](https://make.fun/badge/gta6-cover-art-01/ChristaNavisa/gta6-cover-art-01/reward.svg)](https://make.fun/bounty/gta6-cover-art-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01)
 
-**Vice Panel Studio** turns any photo and a caption into GTA 6-style cover art:
-a multi-panel poster with bold caption lettering and a Vice City sunset or
-neon colour grade, exported as a PNG to share. It runs offline in a desktop
-browser from its own static files — photos never leave the machine.
+# Vice Panel Studio — GTA 6 Cover Art
+
+An offline browser app that turns a photo and a caption into GTA 6-style
+cover art: the multi-panel poster look with a Vice City neon-sunset grade,
+exported as a PNG to share. Built for the
+[Make GTA 6 Cover Art](https://make.fun/bounty/gta6-cover-art-01) bounty on
+[make.fun](https://make.fun).
 
 ## What it does
 
-- **3 layouts** — Vice Grid (5 panels, hero + 4), Sunset Strip (4 panels),
-  Neon Trio (3 panels).
-- **4 grades** — Vice Sunset, Neon Nights, Palm Noir, Bubblegum: gradient-map
-  colour grades baked onto the photo in the canvas.
-- **Any photo** — load your own photos, or fill every panel from one photo;
-  drag to pan and use the zoom slider or mouse wheel to crop each panel.
-- **Caption** — a big Anton title with a Pacifico script subtitle, and a
-  5-star heat meter on a dark pill so it stays readable over bright photos.
-- **Export** — one click to a PNG in 1080×1080, 1080×1350 or 1920×1080, or
-  export all three sizes at once.
-- **Polish** — seeded deterministic grain, a vignette, undo/redo (Ctrl+Z /
-  Ctrl+Shift+Z), and a live preview.
+- **5-panel covers** — a hero panel plus four supporting panels (Vice Grid),
+  or 3-panel Sunset Strip and Neon Trio layouts.
+- **4 grades** — Vice Sunset, Neon Nights, Bubblegum, and Mono Gold, each a
+  gradient-map wash over the photos with grain and vignette.
+- **3 post sizes** — 1080 × 1080, 1080 × 1350, and 1920 × 1080, exported as
+  PNG in one click.
+- **Per-panel photo, drag, and zoom** — every panel takes either sample photo
+  or a photo you upload, and you drag to pan and slide to zoom each one.
+- **Bold caption lettering** — Archivo Black capitals with a gold-rimmed
+  5-star heat meter, plus a Righteous accent line.
+- **Undo / redo** — every edit is a step you can walk back.
+- **Offline** — no network requests; fonts and photos are vendored in `app/`.
 
-## Try it
+## Use it
 
-```sh
-node serve.ts
-# open http://localhost:8080
-```
+Open `app/index.html` in a browser (or run `node serve.ts` and open
+http://localhost:8080). Pick a layout, a grade, and a size, type a caption,
+drag the panels into place, and hit **Export PNG**.
 
-Load a photo (or use the two sample photos), pick a layout and a grade,
-type a title, then export. `?shot=cover` draws the cover full-frame for a
-screenshot; `?selftest=1` exports all three sizes and reports SELFTEST OK.
+`?shot=cover` renders the cover full-bleed (used for the screenshots);
+`?selftest=1` runs the built-in self test and prints `SELFTEST OK`.
 
-## Files
+## Fonts
 
-- `app/index.html`, `app/style.css` — the editor page.
-- `app/src/state.js` — the cover state and undo/redo history.
-- `app/src/layouts.js` — the three panel layouts.
-- `app/src/grades.js` — the four colour grades.
-- `app/src/render.js` — the canvas cover renderer.
-- `app/src/app.js` — UI wiring, photo loading, export, selftest.
-- `main.ts` — hands `app/` and `screenshots/` to the output directory and
-  writes `dossier.json`.
-- `screenshots/` — the cover and the editor at work.
-- `app/fonts/` — Anton, Bebas Neue and Pacifico under the SIL Open Font
-  License (`app/fonts/OFL.txt`).
+- Archivo Black — Copyright 2017 The Archivo Black Project Authors
+- Alfa Slab One — Copyright 2016 The Alfa Slab One Project Authors
+- Righteous — Copyright (c) 2011 by Brian J. Bonislawsky DBA Astigmatic
 
-Built for the [Make GTA 6 Cover Art](https://make.fun/bounty/gta6-cover-art-01)
-bounty on [make.fun](https://make.fun). No Rockstar Games logo, artwork or
-font is used anywhere in this app.
+All three are licensed under the SIL Open Font License 1.1; see
+`app/fonts/OFL.txt`. The sample photos are original illustrations made for
+this app.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
